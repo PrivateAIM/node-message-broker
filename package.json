@@ -1,15 +1,14 @@
 {
-    "name": "typescript-template",
-    "version": "0.0.0",
+    "name": "node-message-broker",
+    "version": "0.1.0",
     "description": "",
     "author": {
-        "name": "Peter Placzek",
-        "email": "contact@tada5hi.net",
-        "url": "https://github.com/tada5hi"
+        "name": "PrivateAIM",
+        "url": "https://github.com/PrivateAIM"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/tada5hi/typescript-template.git"
+        "url": "https://github.com/PrivateAIM/node-message-broker.git"
     },
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
