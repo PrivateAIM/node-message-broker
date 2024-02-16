@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import * as jose from 'jose';
-import { JWKS } from './auth.types';
+
+/**
+ * Describes a function that can be used to retrieve a JSON Web Key Set for token verification.
+ */
+export type JWKS = (protectedHeader?: jose.JWSHeaderParameters, token?: jose.FlattenedJWSInput) => Promise<jose.KeyLike>;
 
 /**
  * Authentication service based on `jose`.

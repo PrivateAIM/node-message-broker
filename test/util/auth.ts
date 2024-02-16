@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import type { StartedTestContainer } from 'testcontainers';
 import { GenericContainer, Wait } from 'testcontainers';
 import axios from 'axios';
-import type { JWKS } from '../../src/server/auth/auth.types';
+import type { JWKS } from '../../src/server/auth/auth.service';
 
 const REALM_CONFIG_FILE = resolve('./test/resources/keycloak-test-realm.json');
 const TEST_NODE_KEYCLOAK_REALM: string = 'node-message-broker-test';

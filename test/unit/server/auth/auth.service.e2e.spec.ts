@@ -1,7 +1,7 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import type { JWKS } from '../../../../src/server/auth/auth.types';
 import { TestAuthEnvironment } from '../../../util/auth';
+import type { JWKS } from '../../../../src/server/auth/auth.service';
 import { AuthService } from '../../../../src/server/auth/auth.service';
 
 describe('Auth Service', () => {
