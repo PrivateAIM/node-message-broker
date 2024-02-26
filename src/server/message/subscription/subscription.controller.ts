@@ -1,12 +1,13 @@
 /* eslint-disable max-classes-per-file */
 // Disabled to allow keeping validation classes close to where they are used!
 import {
-    Body, Controller, Get, HttpCode, Param, Post, Req, Res,
+    Body, Controller, Get, HttpCode, Param, Post, Req, Res, UseGuards,
 } from '@nestjs/common';
 import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
 import { Request, Response } from 'express';
 import type { SubscriptionDto } from './subscription.service';
 import { MessageSubscriptionService } from './subscription.service';
+import { AuthGuard } from '../../auth/auth.guard';
 
 /**
  * Request data for adding a message subscription.
@@ -26,6 +27,7 @@ class AddSubscriptionRequestBody {
  * Bundles API endpoints related to message subscriptions.
  */
 @Controller('messages')
+@UseGuards(AuthGuard)
 export class MessageSubscriptionController {
     private readonly subscriptionService: MessageSubscriptionService;
 

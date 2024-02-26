@@ -7,6 +7,7 @@ import type { StartedTestContainer } from 'testcontainers';
 import { GenericContainer, Wait } from 'testcontainers';
 import { APP_PIPE } from '@nestjs/core';
 import { MessageSubscriptionModule } from '../../../../../src/server/message/subscription/subscription.module';
+import { AuthGuard } from '../../../../../src/server/auth/auth.guard';
 
 const MONGO_DB_TEST_DB_NAME: string = 'message-broker-subscriptions-test';
 
@@ -41,7 +42,10 @@ describe('Message Subscription Module', () => {
                     useClass: ValidationPipe,
                 },
             ],
-        }).compile();
+        })
+            .overrideGuard(AuthGuard)
+            .useValue({ canActivate: () => true })
+            .compile();
 
         app = moduleRef.createNestApplication();
         await app.init();
