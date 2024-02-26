@@ -8,6 +8,9 @@ module.exports = {
                     'parser': {
                         'syntax': 'typescript',
                         'decorators': true
+                    },
+                    'transform': {
+                        'decoratorMetadata': true
                     }
                 }
             }
