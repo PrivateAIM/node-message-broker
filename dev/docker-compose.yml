@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  mongodb:
+    image: mongo:7.0.5@sha256:fcde2d71bf00b592c9cabab1d7d01defde37d69b3d788c53c3bc7431b6b15de8
+    ports:
+      - "17017:27017"
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: "message-broker-db"
+      TZ: "Europe/Berlin"
+
