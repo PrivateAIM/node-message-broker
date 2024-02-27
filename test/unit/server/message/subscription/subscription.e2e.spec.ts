@@ -49,7 +49,7 @@ describe('Message Subscription Module', () => {
 
         app = moduleRef.createNestApplication();
         await app.init();
-    });
+    }, 300000); // timeout takes into account that this image might have to be pulled first
 
     afterAll(async () => {
         await app.close();
