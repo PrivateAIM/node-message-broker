@@ -7,6 +7,9 @@ import { Agent as HttpsAgent } from 'node:https';
 import { HubMessageBroadcastEvent } from './events';
 import { MessageSubscriptionService } from '../subscription/subscription.service';
 
+/**
+ * A service for consuming messages received from the central side (hub).
+ */
 @Injectable()
 export class HubMessageConsumerService {
     private readonly logger: Logger = new Logger(HubMessageConsumerService.name);
@@ -23,6 +26,13 @@ export class HubMessageConsumerService {
         this.httpsAgent = httpsAgent;
     }
 
+    /**
+     * Handles an incoming message broadcast event.
+     * Forwards the wrapped message to all clients that are subscribed to the analysis that this broadcast
+     * message is associated with.
+     *
+     * @param { HubMessageBroadcastEvent } event the message event
+     */
     @OnEvent('hub.message.broadcast.received')
     handleHubMessageBroadcastEvent(event: HubMessageBroadcastEvent) {
         this.subscriptionService.findSubscriptionsForAnalysis(event.analysisId)

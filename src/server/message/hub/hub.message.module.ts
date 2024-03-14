@@ -25,6 +25,9 @@ import { HubMessageConsumerService } from './hub.message.consumer.service';
 import { MessageSubscriptionService } from '../subscription/subscription.service';
 import { MessageSubscriptionModule } from '../subscription/subscription.module';
 
+/**
+ * A Nest.js module that handles message exchanges with the central side (hub).
+ */
 @Module({
     imports: [
         EventEmitterModule.forRoot({
