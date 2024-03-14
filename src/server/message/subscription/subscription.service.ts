@@ -38,6 +38,25 @@ export class MessageSubscriptionService {
     }
 
     /**
+     * Finds all subscriptions for a specific analysis.
+     *
+     * @param {string} analysisId identifier of an analysis
+     * @returns All subscriptions associated with the given analysis ID.
+     */
+    async findSubscriptionsForAnalysis(analysisId: string): Promise<SubscriptionDto[]> {
+        if (analysisId == null || analysisId === undefined) {
+            throw new NotFoundException('cannot find subscription since analysis ID is not set');
+        }
+
+        return this.Subscription.find({ analysisId })
+            .then((subs) => subs.map((sub) => ({
+                id: sub.id,
+                analysisId: sub.analysisId,
+                webhookUrl: new URL(sub.webhookUrl),
+            })));
+    }
+
+    /**
      * Adds a new message subscription.
      *
      * @param {SubscriptionInfo} info Relevant information about the subscriptions that shall be added.
