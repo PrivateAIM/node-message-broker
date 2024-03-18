@@ -52,7 +52,7 @@
         "@nestjs/event-emitter": "^2.0.4",
         "@nestjs/mongoose": "^10.0.4",
         "@nestjs/platform-express": "^10.3.3",
-        "@nestjs/terminus": "^10.2.2",
+        "@nestjs/terminus": "^10.2.3",
         "@privateaim/core": "^0.2.0",
         "@types/express": "^4.17.21",
         "@types/uuid": "^9.0.8",
