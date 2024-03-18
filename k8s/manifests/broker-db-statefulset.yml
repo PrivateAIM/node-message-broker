@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: node-message-broker-db
+  labels:
+    app.kubernetes.io/name: node-message-broker
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: flame
+spec:
+  serviceName: "node-message-broker-db"
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-message-broker
+      app.kubernetes.io/component: database
+      app.kubernetes.io/part-of: flame
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: node-message-broker
+        app.kubernetes.io/component: database
+        app.kubernetes.io/part-of: flame
+    spec:
+      restartPolicy: "Always"
+      containers:
+        - name: node-message-broker-db
+          image: mongo:7.0.5@sha256:fcde2d71bf00b592c9cabab1d7d01defde37d69b3d788c53c3bc7431b6b15de8
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_DATABASE
+              value: "message-broker"
+            - name: TZ
+              value: "Europe/Berlin"
+          resources:
+            requests:
+              memory: "256Mi"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - 'db.runCommand("ping").ok'
+                - --quiet
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 15
+            initialDelaySeconds: 30
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - 'db.runCommand("ping").ok'
+                - --quiet
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 15
+
+          volumeMounts:
+            - name: storage
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes: ["ReadWriteMany"]
+        # We are not using this to make use of the default storage class
+        # This however, should be changed in the future.
+        # storageClassName:
+        resources:
+          requests:
+            storage: 100Mi
