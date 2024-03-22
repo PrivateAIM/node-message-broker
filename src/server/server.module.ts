@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module';
 import configuration from './config/configuration';
 import { AuthModule } from './auth/auth.module';
 import { MessageModule } from './message/message.module';
+import { DiscoveryModule } from './discovery/discovery.module';
 
 @Module({
     imports: [
@@ -24,6 +25,7 @@ import { MessageModule } from './message/message.module';
         AuthModule.forRoot(true),
         HealthModule,
         MessageModule,
+        DiscoveryModule,
     ],
     providers: [
         {
