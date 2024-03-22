@@ -87,7 +87,7 @@
         "lint-staged": "^15.2.2",
         "nock": "^13.5.4",
         "rollup": "^4.13.0",
-        "semantic-release": "^23.0.2",
+        "semantic-release": "^23.0.5",
         "supertest": "^6.3.4",
         "testcontainers": "^10.7.2",
         "typescript": "^5.4.2"
