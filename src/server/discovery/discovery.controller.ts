@@ -1,8 +1,8 @@
 import {
     Controller, Get, HttpCode, Inject, Param, UseGuards,
 } from '@nestjs/common';
-import type { AnalysisNodeDiscoveryResult } from './discovery.service';
-import { DISCOVERY_SERVICE, DiscoveryService } from './discovery.service';
+import type { AnalysisNodeDiscoveryResult, DiscoveryService } from './discovery.service';
+import { DISCOVERY_SERVICE } from './discovery.service';
 import { AuthGuard } from '../auth/auth.guard';
 
 /**
