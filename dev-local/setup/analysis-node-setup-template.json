@@ -1,0 +1,8 @@
+{
+    "approval_status": "approved",
+    "index": 0,
+    "analysis_id": "<ANALYSIS_ID>",
+    "analysis_realm_id": "<REALM_ID>",
+    "node_id": "<NODE_ID>",
+    "node_realm_id": "<REALM_ID>"
+}
