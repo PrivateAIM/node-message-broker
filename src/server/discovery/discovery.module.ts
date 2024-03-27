@@ -39,8 +39,11 @@ import { DISCOVERY_SERVICE, HubBackedDiscoveryService } from './discovery.servic
         },
         {
             provide: DISCOVERY_SERVICE,
-            useFactory: async (hubApiClient: HubApiClient) => new HubBackedDiscoveryService(hubApiClient),
-            inject: [HubApiClient],
+            useFactory: async (hubApiClient: HubApiClient, configService: ConfigService) => {
+                const ownNodeId = configService.getOrThrow<string>('hub.auth.robotId');
+                return new HubBackedDiscoveryService(hubApiClient, ownNodeId);
+            },
+            inject: [HubApiClient, ConfigService],
         },
     ],
 })
