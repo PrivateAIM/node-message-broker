@@ -1,6 +1,34 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+/* eslint-disable max-classes-per-file */
+import { Injectable } from '@nestjs/common';
 import { APIClient as HubApiClient } from '@privateaim/core';
 import type { AnalysisNode, CollectionResourceResponse } from '@privateaim/core';
+
+type ErrorName =
+    | 'FAILED_TO_FETCH_ANALYSIS_NODES'
+    | 'SELF_NOT_FOUND';
+
+export class DiscoveryError extends Error {
+    override name: ErrorName;
+
+    override message: string;
+
+    override cause: any;
+
+    constructor({
+        name,
+        message,
+        cause,
+    }: {
+        name: ErrorName;
+        message: string;
+        cause?: any;
+    }) {
+        super();
+        this.name = name;
+        this.message = message;
+        this.cause = cause;
+    }
+}
 
 /**
  * Describes the type of a participating analysis node.
@@ -26,6 +54,7 @@ export const DISCOVERY_SERVICE = 'DISCOVERY SERVICE';
  */
 export interface DiscoveryService {
     discoverParticipatingAnalysisNodes(analysisId: string): Promise<AnalysisNodeDiscoveryResult[]>;
+    discoverSelf(analysisId: string): Promise<AnalysisNodeDiscoveryResult>;
 }
 
 function extractNodeType(analysisNode: AnalysisNode): NodeType {
@@ -46,8 +75,11 @@ function extractNodeType(analysisNode: AnalysisNode): NodeType {
 export class HubBackedDiscoveryService implements DiscoveryService {
     private readonly hubApiClient: HubApiClient;
 
-    constructor(hubApiClient: HubApiClient) {
+    private readonly myNodeId: string;
+
+    constructor(hubApiClient: HubApiClient, myNodeId: string) {
         this.hubApiClient = hubApiClient;
+        this.myNodeId = myNodeId;
     }
 
     /**
@@ -72,9 +104,30 @@ export class HubBackedDiscoveryService implements DiscoveryService {
                     nodeType: extractNodeType(analysisNode),
                 })))
             .catch((error) => {
-                // TODO: maybe introduce another error type and translate to an HTTP error at the controller level.
-                throw new HttpException('analysis nodes cannot be fetched from central side (hub)', HttpStatus.BAD_GATEWAY, {
+                throw new DiscoveryError({
+                    name: 'FAILED_TO_FETCH_ANALYSIS_NODES',
+                    message: `nodes for analysis '${analysisId}' cannot be fetched from central side (hub)`,
                     cause: error,
+                });
+            });
+    }
+
+    /**
+     * Discovers the participating node within an analysis that this message broker belongs to.
+     *
+     * @param analysisId Identifies the analysis.
+     * @returns A promise of the participating analysis node that this message broker belongs to.
+     */
+    async discoverSelf(analysisId: string): Promise<AnalysisNodeDiscoveryResult> {
+        return this.discoverParticipatingAnalysisNodes(analysisId)
+            .then((nodes) => {
+                const selfNode = nodes.find((n) => n.nodeId === this.myNodeId);
+                if (selfNode !== undefined) {
+                    return selfNode;
+                }
+                throw new DiscoveryError({
+                    name: 'SELF_NOT_FOUND',
+                    message: `cannot determine own identity for analysis '${analysisId}'`,
                 });
             });
     }
