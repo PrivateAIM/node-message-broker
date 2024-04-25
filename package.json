@@ -89,7 +89,7 @@
         "rollup": "^4.13.0",
         "semantic-release": "^23.0.8",
         "supertest": "^6.3.4",
-        "testcontainers": "^10.7.2",
+        "testcontainers": "^10.9.0",
         "typescript": "^5.4.3"
     },
     "lint-staged": {
