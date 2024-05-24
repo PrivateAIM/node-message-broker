@@ -48,7 +48,7 @@
         "@authup/core": "^1.0.0-beta.9",
         "@nestjs/common": "^10.3.8",
         "@nestjs/config": "^3.2.1",
-        "@nestjs/core": "^10.3.7",
+        "@nestjs/core": "^10.3.8",
         "@nestjs/event-emitter": "^2.0.4",
         "@nestjs/mongoose": "^10.0.6",
         "@nestjs/platform-express": "^10.3.7",
