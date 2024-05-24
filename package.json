@@ -90,7 +90,7 @@
         "semantic-release": "^23.1.1",
         "supertest": "^7.0.0",
         "testcontainers": "^10.9.0",
-        "typescript": "^5.4.3"
+        "typescript": "^5.4.5"
     },
     "lint-staged": {
         ".js": "npm run lint:fix",
