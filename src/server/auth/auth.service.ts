@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as jose from 'jose';
+import { HubMessageConsumerService } from '../message/hub/hub.message.consumer.service';
 
 /**
  * Describes a function that can be used to retrieve a JSON Web Key Set for token verification.
@@ -11,6 +12,9 @@ export type JWKS = (protectedHeader?: jose.JWSHeaderParameters, token?: jose.Fla
  */
 @Injectable()
 export class AuthService {
+
+    private readonly logger: Logger = new Logger(HubMessageConsumerService.name);
+
     private readonly jwks: JWKS;
 
     constructor(jwks: JWKS) {
@@ -28,8 +32,7 @@ export class AuthService {
         return jose.jwtVerify(token, this.jwks)
             .then(() => Promise.resolve(true))
             .catch((e) => {
-            // TODO: log this error properly
-                console.log(e);
+                this.logger.warn(`token verification failed: ${e}`);
                 return Promise.resolve(false);
             });
     }
