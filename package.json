@@ -65,6 +65,7 @@
         "socket.io-client": "^4.7.5"
     },
     "devDependencies": {
+        "@eslint/js": "^9.4.0",
         "@nestjs/cli": "^10.3.2",
         "@nestjs/schematics": "^10.1.1",
         "@nestjs/testing": "^10.3.9",
@@ -72,15 +73,19 @@
         "@rollup/plugin-swc": "^0.3.0",
         "@swc/jest": "^0.2.36",
         "@tada5hi/commitlint-config": "^1.2.0",
-        "@tada5hi/eslint-config-typescript": "^1.2.10",
         "@tada5hi/semantic-release": "^0.3.1",
         "@tada5hi/tsconfig": "^0.5.1",
+        "@types/eslint__js": "^8.42.3",
         "@types/jest": "^29.5.12",
         "@types/jest-when": "^3.5.5",
         "@types/node": "^20.14.2",
         "@types/supertest": "^6.0.2",
         "cross-env": "^7.0.3",
         "eslint": "^8.57.0",
+        "eslint-config-standard": "^17.1.0",
+        "eslint-plugin-import": "^2.29.1",
+        "eslint-plugin-n": "^16.6.2",
+        "eslint-plugin-promise": "^6.2.0",
         "husky": "^9.0.11",
         "jest": "^29.7.0",
         "jest-when": "^3.6.0",
@@ -90,7 +95,8 @@
         "semantic-release": "^23.1.1",
         "supertest": "^7.0.0",
         "testcontainers": "^10.9.0",
-        "typescript": "^5.4.5"
+        "typescript": "^5.4.5",
+        "typescript-eslint": "^7.12.0"
     },
     "lint-staged": {
         ".js": "npm run lint:fix",
