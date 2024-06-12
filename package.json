@@ -74,7 +74,7 @@
         "@semantic-release/changelog": "^6.0.3",
         "@semantic-release/git": "^10.0.1",
         "@swc/jest": "^0.2.36",
-        "@tada5hi/commitlint-config": "^1.2.0",
+        "@tada5hi/commitlint-config": "^1.2.1",
         "@tada5hi/tsconfig": "^0.5.1",
         "@types/eslint__js": "^8.42.3",
         "@types/jest": "^29.5.12",
