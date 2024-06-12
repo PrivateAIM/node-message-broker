@@ -70,7 +70,7 @@
         "@nestjs/schematics": "^10.1.1",
         "@nestjs/testing": "^10.3.9",
         "@rollup/plugin-node-resolve": "^15.2.3",
-        "@rollup/plugin-swc": "^0.3.0",
+        "@rollup/plugin-swc": "^0.3.1",
         "@semantic-release/changelog": "^6.0.3",
         "@semantic-release/git": "^10.0.1",
         "@swc/jest": "^0.2.36",
