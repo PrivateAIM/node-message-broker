@@ -1,4 +1,5 @@
-import {Effect, Layer} from "effect";
+import {Layer} from "effect";
+import {NodeRuntime} from "@effect/platform-node"
 import {AppLive} from "./server";
 
-Effect.runFork(Layer.launch(AppLive));
+NodeRuntime.runMain(Layer.launch(AppLive));

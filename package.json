@@ -44,6 +44,7 @@
     "license": "MIT",
     "dependencies": {
         "@authup/core": "^1.0.0-beta.9",
+        "@effect/platform-node": "^0.51.11",
         "@nestjs/common": "^10.3.9",
         "@nestjs/config": "^3.2.2",
         "@nestjs/core": "^10.3.9",
