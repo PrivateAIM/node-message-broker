@@ -1,4 +1,3 @@
-// Define the main route, IndexRouteLive, as a Layer
 import {Effect, Layer, Runtime} from "effect";
 import {Express} from "./server";
 

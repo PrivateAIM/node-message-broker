@@ -1,6 +1,7 @@
 import {Context, Effect, Layer} from "effect";
 import express from "express";
 import {IndexRouteLive} from "./router";
+import {HealthRouteLive} from "./health/health";
 
 export class Express extends Context.Tag("Express")<
     Express,
@@ -29,5 +30,6 @@ const ExpressLive = Layer.sync(Express, () => express());
 
 export const AppLive = ServerLive.pipe(
     Layer.provide(IndexRouteLive),
+    Layer.provide(HealthRouteLive),
     Layer.provide(ExpressLive)
 );
