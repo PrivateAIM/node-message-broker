@@ -1,7 +1,15 @@
+import express, {IRouter, Response} from "express";
 import {Context, Effect, Layer, Runtime} from "effect";
 import {Schema} from "@effect/schema";
-import {Response} from "express";
-import {Express} from "../server";
+
+/**
+ * Describes an express based router for health related endpoints.
+ */
+export class HealthRouter extends Context.Tag("@app/HealthRouter")<
+    HealthRouter,
+    IRouter
+>() {
+}
 
 /**
  * Defines 2 states of operation (healthy, unhealthy).
@@ -11,6 +19,7 @@ enum OperationalStatus {
     Unhealthy = "unhealthy"
 }
 
+//
 /**
  * A schema that describes the health status of a subsystem.
  */
@@ -20,6 +29,7 @@ class SubsystemHealthStatus extends Schema.Class<SubsystemHealthStatus>("Subsyst
 }) {
 }
 
+//
 /**
  * A schema that describes the overall health status of this application.
  */
@@ -59,39 +69,44 @@ const HealthServiceLive = Layer.succeed(
     })
 );
 
+
 /**
  * Express controller for routing health related requests.
  */
 const HealthControllerLive: Layer.Layer<
+    HealthRouter,
     never,
-    never,
-    Express | HealthService
-> = Layer.effectDiscard(
+    HealthRouter
+> = Layer.effect(
+    HealthRouter,
     Effect.gen(function* () {
-        const app = yield* Express;
-        const healthSvc = yield* HealthService;
-        const runFork = Runtime.runFork(yield* Effect.runtime<never>())
+            // return yield* ServerRouter;
+            let router = yield* HealthRouter;
+            const healthSvc = yield* HealthService;
+            const runFork = Runtime.runFork(yield* Effect.runtime<never>())
 
-        app.get("/health", (_: any, res: Response) => {
-            runFork(healthSvc.getAppHealthStatus().pipe(
-                Effect.map((status) =>
-                    res.status(200).send(
-                        JSON.stringify(status, null, 2)
+            router.get("/health", (_: any, res: Response) => {
+                runFork(healthSvc.getAppHealthStatus().pipe(
+                    Effect.map((status) =>
+                        res.status(200).send(
+                            JSON.stringify(status, null, 2)
+                        )
                     )
-                )
-            ));
-        });
-    })
+                ));
+            });
+
+            return router;
+        }
+    )
+).pipe(
+    Layer.provide(HealthServiceLive)
 );
 
 /**
- * Ready to be used router effect for health related functionality. Use this effect in conjunction with Express in order
- * to enable the /health route.
+ * Express router for health related endpoints.
  */
-export const HealthRouteLive: Layer.Layer<
-    never,
-    never,
-    Express
-> = HealthControllerLive.pipe(
-    Layer.provide(HealthServiceLive)
+export const HealthRouterLive = HealthControllerLive.pipe(
+    Layer.provide(Layer.sync(HealthRouter, () => express.Router()))
 );
+
+

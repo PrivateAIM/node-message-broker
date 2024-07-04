@@ -1,23 +1,29 @@
 import {Context, Effect, Layer} from "effect";
 import express from "express";
-import {IndexRouteLive} from "./router";
-import {HealthRouteLive} from "./health/health";
+import {ServerRouter, ServerRouterLive} from "./router";
 
-export class Express extends Context.Tag("Express")<
-    Express,
+export class Server extends Context.Tag("Server")<
+    Server,
     ReturnType<typeof express>
 >() {
 }
 
 // Server Setup
-const ServerLive = Layer.scopedDiscard(
+const ServerLive: Layer.Layer<
+    never,
+    never,
+    Server | ServerRouter
+> = Layer.scopedDiscard(
     Effect.gen(function* () {
         const port = 3001
-        const app = yield* Express
+        const server = yield* Server
+        const router = yield* ServerRouter
+
+        server.use(router);
 
         yield* Effect.acquireRelease(
             Effect.sync(() =>
-                app.listen(port, () =>
+                server.listen(port, () =>
                     console.log(`Example app listening on port ${port}`)
                 )
             ),
@@ -26,10 +32,8 @@ const ServerLive = Layer.scopedDiscard(
     })
 );
 
-const ExpressLive = Layer.sync(Express, () => express());
+const ExpressLive = Layer.sync(Server, () => express());
 
 export const AppLive = ServerLive.pipe(
-    Layer.provide(IndexRouteLive),
-    Layer.provide(HealthRouteLive),
-    Layer.provide(ExpressLive)
+    Layer.provide(Layer.merge(ExpressLive, ServerRouterLive))
 );
