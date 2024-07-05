@@ -61,7 +61,7 @@
         "class-validator": "^0.14.1",
         "express": "^4.18.3",
         "jose": "^5.4.0",
-        "mongoose": "^8.4.1",
+        "mongoose": "^8.4.5",
         "socket.io-client": "^4.7.5"
     },
     "devDependencies": {
