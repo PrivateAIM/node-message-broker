@@ -198,12 +198,12 @@ const DiscoveryControllerLive: Layer.Layer<
                         ),
                         Effect.catchTags({
                             HubFetchError: (e: HubFetchError) => Effect.succeed(
-                                res.status(500).send(
+                                res.status(502).send(
                                     JSON.stringify(e)
                                 )
                             ),
                             HubUnexpectedResultError: (e: HubUnexpectedResultError) => Effect.succeed(
-                                res.status(500).send(
+                                res.status(502).send(
                                     JSON.stringify(e)
                                 )
                             )
