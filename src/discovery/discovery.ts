@@ -3,6 +3,7 @@ import express, {IRouter, Request, Response} from "express";
 import {HubClient, HubClientLive} from "../common/hub-client";
 import type {AnalysisNode, CollectionResourceResponse} from "@privateaim/core";
 import {Schema} from "@effect/schema";
+import {BrokerConfig, MessageBrokerConfig} from "../config";
 
 /**
  * Describes an express based router for discovery related endpoints.
@@ -30,6 +31,16 @@ class HubUnexpectedResultError {
     readonly _tag = "HubUnexpectedResultError";
 
     constructor(readonly message: string, readonly cause: Error) {
+    }
+}
+
+/**
+ * Indicates that the own node could not get identified within a set of analysis nodes.
+ */
+class SelfNotFoundError {
+    readonly _tag = "SelfNotFoundError";
+
+    constructor(readonly message: string) {
     }
 }
 
@@ -76,7 +87,7 @@ class DiscoveryService extends Context.Tag("@app/DiscoveryService")<
         /**
          * Discovers all participants of an analysis.
          *
-         * @param analysisId: identifies the analysis
+         * @param analysisId identifies the analysis
          * @returns All participants associated with the analysis.
          */
         readonly discoverParticipatingAnalysisNodes: (analysisId: string) => Effect.Effect<
@@ -87,21 +98,25 @@ class DiscoveryService extends Context.Tag("@app/DiscoveryService")<
         /**
          * Discovers the requester's node within a set of analyses.
          *
-         * @param analysisId: identifies the analysis
+         * @param analysisId identifies the analysis
          * @returns The requester's node.
          */
         readonly discoverSelf: (analysisId: string) => Effect.Effect<
             ParticipatingNode,
-            never,
+            HubFetchError | HubUnexpectedResultError | SelfNotFoundError,
             never>
     }
 >() {
 }
 
+/**
+ * {@link DiscoveryService} implementation that makes use of the {@link HubClient} to communicate with the Hub side.
+ */
 const HubBasedDiscoveryServiceLive = Layer.effect(
     DiscoveryService,
     Effect.gen(function* () {
         const hubClient = yield* HubClient;
+        const conf: MessageBrokerConfig = yield* BrokerConfig;
 
         /**
          * Extracts the {@link NodeType} from a single analysis node.
@@ -139,32 +154,53 @@ const HubBasedDiscoveryServiceLive = Layer.effect(
             }));
         }
 
+        /**
+         * Discovers all participants of an analysis.
+         *
+         * @param analysisId identifies the analysis
+         * @returns All participants associated with the analysis.
+         */
+        const discoverParticipatingAnalysisNodes = (analysisId: string) => Effect.gen(function* () {
+            const fetchedAnalysisNodes = yield* Effect.tryPromise({
+                try: () => hubClient.analysisNode.getMany({
+                    filter: {
+                        analysis_id: analysisId
+                    },
+                    include: {
+                        node: true
+                    }
+                }).then((res: CollectionResourceResponse<AnalysisNode>) => res.data),
+                catch: (err) => new HubFetchError("could not fetch analysis nodes from hub", err as Error)
+            });
+
+            const parsedAnalysisNodes = yield* Effect.try({
+                try: () => Schema.decodeUnknownSync(HubAnalysisNodes, {errors: "all"})(fetchedAnalysisNodes),
+                catch: (err) => new HubUnexpectedResultError("hub returned unexpected data", err as Error)
+            });
+
+            const nodesWithRobotId = filterForNodesWithRobotId(parsedAnalysisNodes);
+            return convertToDiscoveryResult(nodesWithRobotId);
+        });
+
+        /**
+         * Discovers the requester's node within a set of analyses.
+         *
+         * @param analysisId identifies the analysis
+         * @returns The requester's node.
+         */
+        const discoverSelf = (analysisId: string) => Effect.gen(function* () {
+            const participatingAnalysisNodes = yield* discoverParticipatingAnalysisNodes(analysisId);
+
+            const self = participatingAnalysisNodes.find(n => n.nodeId === conf.hub.auth.robotId);
+            if (self === undefined) {
+                yield* Effect.fail(new SelfNotFoundError("self could not be found for analysis"));
+            }
+            return self!;
+        });
+
         return {
-            discoverParticipatingAnalysisNodes: (analysisId: string) => Effect.gen(function* () {
-                const fetchedAnalysisNodes = yield* Effect.tryPromise({
-                    try: () => hubClient.analysisNode.getMany({
-                        filter: {
-                            analysis_id: analysisId
-                        },
-                        include: {
-                            node: true
-                        }
-                    }).then((res: CollectionResourceResponse<AnalysisNode>) => res.data),
-                    catch: (err) => new HubFetchError("could not fetch analysis nodes from hub", err as Error)
-                });
-
-                const parsedAnalysisNodes = yield* Effect.try({
-                    try: () => Schema.decodeUnknownSync(HubAnalysisNodes, {errors: "all"})(fetchedAnalysisNodes),
-                    catch: (err) => new HubUnexpectedResultError("hub returned unexpected data", err as Error)
-                });
-
-                const nodesWithRobotId = filterForNodesWithRobotId(parsedAnalysisNodes);
-                return convertToDiscoveryResult(nodesWithRobotId);
-            }),
-
-            discoverSelf: (_analysisId: string) => Effect.gen(function* () {
-                return null as unknown as ParticipatingNode;
-            })
+            discoverParticipatingAnalysisNodes,
+            discoverSelf
         }
     })
 ).pipe(
@@ -181,6 +217,7 @@ const DiscoveryControllerLive: Layer.Layer<
 > = Layer.effect(
     DiscoveryRouter,
     Effect.gen(function* () {
+
         let router = yield* DiscoveryRouter;
         let discoverySvc = yield* DiscoveryService;
         const runFork = Runtime.runFork(yield* Effect.runtime<never>())
@@ -209,6 +246,43 @@ const DiscoveryControllerLive: Layer.Layer<
                             )
                         })
                     ))
+        });
+
+        router.get("/analyses/:analysisId/participants/self", (req: Request, res: Response) => {
+            let {analysisId} = req.params;
+
+            runFork(
+                discoverySvc.discoverSelf(analysisId)
+                    .pipe(
+                        Effect.map((discoveredNode: ParticipatingNode) =>
+                            res.status(200).send(
+                                JSON.stringify(discoveredNode)
+                            )
+                        ),
+                        Effect.catchTags({
+                            HubFetchError: (e: HubFetchError) => Effect.succeed(
+                                res.status(502).send(
+                                    JSON.stringify(e)
+                                )
+                            ),
+                            HubUnexpectedResultError: (e: HubUnexpectedResultError) => Effect.succeed(
+                                res.status(502).send(
+                                    JSON.stringify(e)
+                                )
+                            ),
+                            SelfNotFoundError: (e: SelfNotFoundError) => Effect.succeed(
+                                res.status(404).send(
+                                    JSON.stringify(e)
+                                )
+                            )
+                        }),
+                        Effect.catchAll((e: Error) => Effect.succeed(
+                            res.status(500).send(
+                                JSON.stringify(e)
+                            )
+                        ))
+                    )
+            )
         });
 
         return router;
