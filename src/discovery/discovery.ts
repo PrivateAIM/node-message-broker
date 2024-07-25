@@ -1,7 +1,8 @@
 import {Context, Effect, Layer, Runtime} from "effect";
 import express, {IRouter, Request, Response} from "express";
 import {HubClient, HubClientLive} from "../common/hub-client";
-import type {AnalysisNode, CollectionResourceResponse} from "@privateaim/core";
+import {CollectionResourceResponse} from "@privateaim/core-http-kit";
+import {AnalysisNode} from "@privateaim/core-kit";
 import {Schema} from "@effect/schema";
 import {BrokerConfig, MessageBrokerConfig} from "../config";
 

@@ -1,19 +1,19 @@
 import {Context, Effect, Layer, Redacted} from "effect";
-import {APIClient} from "@privateaim/core";
-import {mountClientResponseErrorTokenHook} from "@authup/core";
 import {BrokerConfig, MessageBrokerConfig} from "../config";
+import {mountClientResponseErrorTokenHook} from "@authup/core-http-kit";
+import {Client} from "@privateaim/core-http-kit";
 
 /**
  * Describes a client for communicating with the Hub side.
  */
 export class HubClient extends Context.Tag("@app/common/HubClient")<
     HubClient,
-    APIClient
+    Client
 >() {
 }
 
 /**
- * Client for communicating with the Hub side backed by the official {@link APIClient}.
+ * Client for communicating with the Hub side backed by the official {@link Client}.
  */
 export const HubClientLive: Layer.Layer<
     HubClient,
@@ -24,7 +24,7 @@ export const HubClientLive: Layer.Layer<
     Effect.gen(function* () {
         const conf: MessageBrokerConfig = yield* BrokerConfig;
 
-        let hubApiClient = new APIClient({
+        let hubApiClient = new Client({
             baseURL: conf.hub.baseUrl
         });
 
