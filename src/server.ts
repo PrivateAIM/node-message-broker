@@ -1,6 +1,9 @@
 import {Context, Effect, Layer} from "effect";
 import express from "express";
 import {ServerRouter, ServerRouterLive} from "./router";
+import {BrokerConfig, MessageBrokerConfig} from "./config";
+import {AnalysisMessageDistributorLive} from "./message/message-distributor";
+import {EventSystemLive} from "./common/event-system";
 
 export class Server extends Context.Tag("Server")<
     Server,
@@ -15,7 +18,7 @@ const ServerLive: Layer.Layer<
     Server | ServerRouter
 > = Layer.scopedDiscard(
     Effect.gen(function* () {
-        const port = 3001
+        const conf: MessageBrokerConfig = yield* BrokerConfig;
         const server = yield* Server
         const router = yield* ServerRouter
 
@@ -23,8 +26,8 @@ const ServerLive: Layer.Layer<
 
         yield* Effect.acquireRelease(
             Effect.sync(() =>
-                server.listen(port, () =>
-                    console.log(`Example app listening on port ${port}`)
+                server.listen(conf.serverPort, () =>
+                    Effect.runSync(Effect.logInfo(`message broker listening on port ${conf.serverPort}`))
                 )
             ),
             (server) => Effect.sync(() => server.close())
@@ -34,6 +37,11 @@ const ServerLive: Layer.Layer<
 
 const ExpressLive = Layer.sync(Server, () => express());
 
-export const AppLive = ServerLive.pipe(
-    Layer.provide(Layer.merge(ExpressLive, ServerRouterLive))
+export const AppLive = Layer.mergeAll(
+    AnalysisMessageDistributorLive.pipe(
+        Layer.provide(EventSystemLive)
+    ),
+    ServerLive.pipe(
+        Layer.provide(Layer.merge(ExpressLive, ServerRouterLive))
+    )
 );

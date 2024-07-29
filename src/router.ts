@@ -4,6 +4,7 @@ import {HealthRouter, HealthRouterLive} from "./health/health";
 import {RequestLoggerMiddleware, RequestLoggerMiddlewareLive} from "./middleware/request-logger";
 import {DiscoveryRouter, DiscoveryRouterLive} from "./discovery/discovery";
 import {SubscriptionRouter, SubscriptionRouterLive} from "./message/subscription";
+import {MessageRouter, MessageRouterLive} from "./message/message";
 
 /**
  * Describes the main router of this application.
@@ -29,12 +30,14 @@ export const ServerRouterLive: Layer.Layer<
         let healthRouter = yield* HealthRouter;
         let discoveryRouter = yield* DiscoveryRouter;
         let subscriptionRouter = yield* SubscriptionRouter;
+        let messageRouter = yield* MessageRouter;
 
         mainRouter.use(express.json());
         mainRouter.use(requestLogger);
         mainRouter.use(healthRouter);
         mainRouter.use(discoveryRouter);
         mainRouter.use(subscriptionRouter);
+        mainRouter.use(messageRouter);
 
         return mainRouter;
     })
@@ -43,6 +46,7 @@ export const ServerRouterLive: Layer.Layer<
         HealthRouterLive,
         DiscoveryRouterLive,
         SubscriptionRouterLive,
+        MessageRouterLive,
         RequestLoggerMiddlewareLive
     ))
 );

@@ -13,6 +13,7 @@ export type MessageBrokerConfig = {
  */
 export type HubClientConfig = {
     readonly baseUrl: string,
+    readonly messengerBaseUrl: string,
     readonly auth: HubClientAuthConfig
 }
 
@@ -78,10 +79,16 @@ const hubClientConfig = Config.nested(Config.map(
                 validation: (url) => URL.canParse(url)
             })
         ),
+        Config.string("MESSENGER_BASE_URL").pipe(
+            Config.validate({
+                message: "Expected a valid URL",
+                validation: (url) => URL.canParse(url)
+            })
+        ),
         hubClientAuthConfig
     ]),
-    ([baseUrl, auth]) => ({
-        baseUrl, auth
+    ([baseUrl, messengerBaseUrl, auth]) => ({
+        baseUrl, messengerBaseUrl, auth
     } as HubClientConfig)
 ), "HUB");
 
