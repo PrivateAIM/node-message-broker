@@ -4,6 +4,7 @@ import {Config, ConfigError, Effect, Option, Redacted} from "effect"
  * Defines the overall configuration schema for the message broker application.
  */
 export type MessageBrokerConfig = {
+    readonly serverPort: number,
     readonly hub: HubClientConfig,
     readonly persistence: MessageBrokerPersistenceConfig
 }
@@ -137,11 +138,18 @@ const persistenceConfig = Config.nested(Config.map(
 export const BrokerConfig = Effect.gen(function* () {
     return yield* Config.map(
         Config.all([
+            Config.number("SERVER_PORT").pipe(
+                Config.withDefault(3001),
+                Config.validate({
+                    message: "Expected a valid port number",
+                    validation: (port: number) => port >= 0 && port <= 65535
+                })
+            ),
             hubClientConfig,
             persistenceConfig
         ]),
-        ([hub, persistence]) => ({
-            hub, persistence
+        ([serverPort, hub, persistence]) => ({
+            serverPort, hub, persistence
         } as MessageBrokerConfig)
     )
 }).pipe(
