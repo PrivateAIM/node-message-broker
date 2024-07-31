@@ -7,6 +7,7 @@ export type MessageBrokerConfig = {
     readonly serverPort: number,
     readonly hub: HubClientConfig,
     readonly persistence: MessageBrokerPersistenceConfig
+    readonly auth: MessageBrokerAuthConfig,
 }
 
 /**
@@ -36,6 +37,13 @@ export type MessageBrokerPersistenceConfig = {
     readonly hostname: string,
     readonly port: number,
     readonly databaseName: string
+}
+
+/**
+ * Defines the auth configuration for the message broker application.
+ */
+export type MessageBrokerAuthConfig = {
+    readonly jwksUrl: string
 }
 
 /**
@@ -132,6 +140,24 @@ const persistenceConfig = Config.nested(Config.map(
 ), "PERSISTENCE");
 
 /**
+ * Definition of the configuration associated with the message broker's auth layer.
+ * This configuration resides under the 'AUTH' prefix.
+ */
+const authConfig = Config.nested(Config.map(
+    Config.all([
+        Config.string("JWKS_URL").pipe(
+            Config.validate({
+                message: "Expected a valid URL",
+                validation: (url) => URL.canParse(url)
+            })
+        ),
+    ]),
+    ([jwksUrl]) => ({
+        jwksUrl
+    } as MessageBrokerAuthConfig)
+), "AUTH");
+
+/**
  * Reads the {@link MessageBrokerConfig} from environment variables and returns it.
  * Dies if the configuration cannot be read.
  */
@@ -146,10 +172,11 @@ export const BrokerConfig = Effect.gen(function* () {
                 })
             ),
             hubClientConfig,
-            persistenceConfig
+            persistenceConfig,
+            authConfig
         ]),
-        ([serverPort, hub, persistence]) => ({
-            serverPort, hub, persistence
+        ([serverPort, hub, persistence, auth]) => ({
+            serverPort, hub, persistence, auth
         } as MessageBrokerConfig)
     )
 }).pipe(

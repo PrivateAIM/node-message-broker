@@ -5,6 +5,7 @@ import {RequestLoggerMiddleware, RequestLoggerMiddlewareLive} from "./middleware
 import {DiscoveryRouter, DiscoveryRouterLive} from "./discovery/discovery";
 import {SubscriptionRouter, SubscriptionRouterLive} from "./message/subscription";
 import {MessageRouter, MessageRouterLive} from "./message/message";
+import {AuthMiddleware, AuthMiddlewareLive} from "./middleware/auth";
 
 /**
  * Describes the main router of this application.
@@ -27,6 +28,7 @@ export const ServerRouterLive: Layer.Layer<
     Effect.gen(function* () {
         let mainRouter = express.Router();
         let requestLogger = yield* RequestLoggerMiddleware;
+        let authMiddleware = yield* AuthMiddleware;
         let healthRouter = yield* HealthRouter;
         let discoveryRouter = yield* DiscoveryRouter;
         let subscriptionRouter = yield* SubscriptionRouter;
@@ -34,10 +36,10 @@ export const ServerRouterLive: Layer.Layer<
 
         mainRouter.use(express.json());
         mainRouter.use(requestLogger);
-        mainRouter.use(healthRouter);
-        mainRouter.use(discoveryRouter);
-        mainRouter.use(subscriptionRouter);
-        mainRouter.use(messageRouter);
+        mainRouter.use(healthRouter.use(authMiddleware));
+        mainRouter.use(discoveryRouter.use(authMiddleware));
+        mainRouter.use(subscriptionRouter.use(authMiddleware));
+        mainRouter.use(messageRouter.use(authMiddleware));
 
         return mainRouter;
     })
@@ -47,6 +49,7 @@ export const ServerRouterLive: Layer.Layer<
         DiscoveryRouterLive,
         SubscriptionRouterLive,
         MessageRouterLive,
+        AuthMiddlewareLive,
         RequestLoggerMiddlewareLive
     ))
 );
