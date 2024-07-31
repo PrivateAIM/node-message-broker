@@ -12,6 +12,7 @@
 #
 # - HUB_AUTH_BASE_URL
 # - HUB_BASE_URL
+# - HUB_MESSENGER_BASE_URL
 
 BASE_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit 1 ; pwd -P )"
 
@@ -49,8 +50,9 @@ checkSuccessOrFailWithCode $? 3
 echo -n "Preparing broker deployment..."
 sed -i  -e "s#<AUTH_JWKS_URL>#${AUTH_JWKS_URL}#" \
         -e "s#<HUB_AUTH_ROBOT_ID>#${HUB_AUTH_ROBOT_ID}#" \
-        -e "s#<HUB_AUTH_BASE_URL>#${HUB_AUTH_BASE_URL:-"https://auth.privateaim.net"}#" \
-        -e "s#<HUB_BASE_URL>#${HUB_BASE_URL:-"https://api.privateaim.net"}#" \
+        -e "s#<HUB_AUTH_BASE_URL>#${HUB_AUTH_BASE_URL:-"https://auth.privateaim.dev"}#" \
+        -e "s#<HUB_BASE_URL>#${HUB_BASE_URL:-"https://core.privateaim.dev"}#" \
+        -e "s#<HUB_MESSENGER_BASE_URL>#${HUB_MESSENGER_BASE_URL:-"https://messenger.privateaim.dev"}#" \
         "${WORK_DIR}/broker-deployment.yml"
 checkSuccessOrFailWithCode $? 4
 

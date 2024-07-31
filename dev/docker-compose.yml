@@ -1,11 +1,25 @@
 version: "3.9"
 services:
-  mongodb:
-    image: mongo:7.0.5@sha256:fcde2d71bf00b592c9cabab1d7d01defde37d69b3d788c53c3bc7431b6b15de8
-    ports:
-      - "17017:27017"
-    restart: always
-    environment:
-      MONGO_INITDB_DATABASE: "message-broker-db"
-      TZ: "Europe/Berlin"
-
+    mongodb:
+        image: mongo:7.0.5@sha256:fcde2d71bf00b592c9cabab1d7d01defde37d69b3d788c53c3bc7431b6b15de8
+        ports:
+            - "17017:27017"
+        restart: always
+        environment:
+            MONGO_INITDB_DATABASE: "message-broker-db"
+            TZ: "Europe/Berlin"
+    keycloak:
+        image: keycloak/keycloak:24.0.4@sha256:ff02c932f0249c58f32b8ff1b188a48cc90809779a3a05931ab67f5672400ad0
+        ports:
+            - 18080:8080
+            - 10433:8433
+        command:
+            - start-dev
+            - --health-enabled
+            - "true"
+            - --import-realm
+        environment:
+            KEYCLOAK_ADMIN: admin
+            KEYCLOAK_ADMIN_PASSWORD: admin
+        volumes:
+            - ./config/keycloak/private-aim-realm.json:/opt/keycloak/data/import/default-path-realm.json:ro
