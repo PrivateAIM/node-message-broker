@@ -61,7 +61,7 @@
         "uuid": "^10.0.0"
     },
     "devDependencies": {
-        "@eslint/js": "^9.4.0",
+        "@eslint/js": "^9.10.0",
         "@rollup/plugin-node-resolve": "^15.2.3",
         "@rollup/plugin-swc": "^0.3.1",
         "@semantic-release/changelog": "^6.0.3",
