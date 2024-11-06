@@ -1,0 +1,18 @@
+server:
+  port: 8080
+  error:
+    include-stacktrace: never
+spring:
+  application:
+    name: node-message-broker
+logging:
+  level:
+    org.springframework.web: ${LOG_LEVEL:debug}
+
+app:
+  hub:
+    baseUrl: ${HUB_BASE_URL}
+    auth:
+      baseUrl: ${HUB_AUTH_BASE_URL}
+      robotId: ${HUB_AUTH_ROBOT_ID}
+      robotSecret: ${HUB_AUTH_ROBOT_SECRET}
