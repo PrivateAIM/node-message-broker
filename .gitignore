@@ -1,18 +1,22 @@
-.DS_Store
-bin
-dist
-doc
-node_modules
-.vscode
-.nyc_output
-coverage
-*.log
-npm-debug.log*
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
 .idea
-reports
-db.sqlite
-.env
-cache
-.swc
+*.iws
+*.iml
+*.ipr
 
 k8s/tmp**
