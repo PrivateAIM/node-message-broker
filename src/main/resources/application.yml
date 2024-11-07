@@ -10,6 +10,8 @@ logging:
     org.springframework.web: ${LOG_LEVEL:debug}
 
 app:
+  auth:
+    jwksUrl: ${AUTH_JWKS_URL}
   hub:
     baseUrl: ${HUB_BASE_URL}
     auth:
