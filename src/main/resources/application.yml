@@ -5,6 +5,11 @@ server:
 spring:
   application:
     name: node-message-broker
+  data:
+    mongodb:
+      host: ${PERSISTENCE_HOSTNAME:localhost}
+      port: ${PERSISTENCE_PORT:17017}
+      database: ${PERSISTENCE_DATABASE_NAME:messagebroker}
 logging:
   level:
     org.springframework.web: ${LOG_LEVEL:debug}
