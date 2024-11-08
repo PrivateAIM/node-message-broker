@@ -56,14 +56,15 @@ public class CommonSpringConfig {
         return new HttpHubClient(alwaysReAuthenticatedWebClient);
     }
 
+    @Qualifier("HUB_AUTH_CLIENT")
     @Bean
-    HubAuthClient hubAuthClient() {
+    public HubAuthClient hubAuthClient() {
         return HttpHubAuthClient.create(hubAuthBaseUrl);
     }
 
     @Qualifier("HUB_AUTH_RENEW_TOKEN")
     @Bean
-    ExchangeFilterFunction renewAuthTokenFilter(HubAuthClient hubAuthClient) {
+    ExchangeFilterFunction renewAuthTokenFilter(@Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient) {
         return new RenewAuthTokenFilter(hubAuthClient, hubAuthRobotId, hubAuthRobotSecret);
     }
 }

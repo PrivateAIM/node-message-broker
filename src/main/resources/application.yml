@@ -23,3 +23,5 @@ app:
       baseUrl: ${HUB_AUTH_BASE_URL}
       robotId: ${HUB_AUTH_ROBOT_ID}
       robotSecret: ${HUB_AUTH_ROBOT_SECRET}
+    messenger:
+      baseUrl: ${HUB_MESSENGER_BASE_URL}
