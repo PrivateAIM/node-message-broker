@@ -37,7 +37,7 @@ public class MessageSubscriptionService {
         return messageSubscriptionRepository.deleteById(subscriptionId);
     }
 
-    Flux<MessageSubscription> listSubscriptions(String analysisId) {
+    public Flux<MessageSubscription> listSubscriptions(String analysisId) {
         return messageSubscriptionRepository.findAllByAnalysisId(analysisId);
     }
 }

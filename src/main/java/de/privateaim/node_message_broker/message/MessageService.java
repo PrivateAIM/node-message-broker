@@ -2,7 +2,7 @@ package de.privateaim.node_message_broker.message;
 
 import de.privateaim.node_message_broker.common.hub.HubClient;
 import de.privateaim.node_message_broker.message.api.hub.HubSendMessage;
-import de.privateaim.node_message_broker.message.api.hub.HubSendMessageMetaData;
+import de.privateaim.node_message_broker.message.api.hub.HubMessageMetaData;
 import de.privateaim.node_message_broker.message.api.hub.HubSendMessageRecipient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,7 +37,7 @@ public final class MessageService {
                         new HubSendMessage(
                                 messageIdWithRecipients.getT2(),
                                 message,
-                                new HubSendMessageMetaData(messageIdWithRecipients.getT1(), analysisId)))
+                                new HubMessageMetaData(messageIdWithRecipients.getT1(), analysisId)))
                 .flatMap(messageEmitter::emitMessage);
     }
 
@@ -61,7 +61,7 @@ public final class MessageService {
                         new HubSendMessage(
                                 messageRecipients,
                                 message,
-                                new HubSendMessageMetaData(messageId, analysisId)))
+                                new HubMessageMetaData(messageId, analysisId)))
                 .flatMap(messageEmitter::emitMessage);
     }
 

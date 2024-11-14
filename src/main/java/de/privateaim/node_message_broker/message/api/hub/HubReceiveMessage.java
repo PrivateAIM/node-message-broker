@@ -4,17 +4,17 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.NonNull;
 
-import java.util.UUID;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record HubSendMessageMetaData(
-
-        @JsonProperty("messageId")
+public record HubReceiveMessage(
+        @JsonProperty("from")
         @NonNull
-        UUID messageId,
+        HubReceiveMessageSender sender,
 
-        @JsonProperty("analysisId")
+        @JsonProperty("data")
+        Object message,
+
+        @JsonProperty("metadata")
         @NonNull
-        String analysisId
+        HubMessageMetaData metaData
 ) {
 }

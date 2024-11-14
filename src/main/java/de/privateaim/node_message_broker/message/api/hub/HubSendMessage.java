@@ -16,6 +16,6 @@ public record HubSendMessage(
         Object message,
 
         @JsonProperty("metadata")
-        HubSendMessageMetaData metaData
+        HubMessageMetaData metaData
 ) {
 }
