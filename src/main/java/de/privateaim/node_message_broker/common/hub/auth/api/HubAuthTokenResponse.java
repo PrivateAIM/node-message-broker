@@ -1,4 +1,4 @@
-package de.privateaim.node_message_broker.common.hub.auth;
+package de.privateaim.node_message_broker.common.hub.auth.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @EqualsAndHashCode
 @JsonIgnoreProperties(ignoreUnknown = true)
-final class HubAuthTokenResponse {
+public final class HubAuthTokenResponse {
 
     @JsonProperty("access_token")
     public String accessToken;

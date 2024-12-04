@@ -1,5 +1,6 @@
 package de.privateaim.node_message_broker.common.hub.auth;
 
+import de.privateaim.node_message_broker.common.hub.auth.api.HubAuthTokenResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
