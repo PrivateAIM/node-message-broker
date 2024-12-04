@@ -6,6 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response container for everything returned from the Hub.
+ *
+ * @param <T> type of the embedded data
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode

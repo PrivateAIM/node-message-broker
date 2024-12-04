@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response for an analysis node as received from the Hub.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode

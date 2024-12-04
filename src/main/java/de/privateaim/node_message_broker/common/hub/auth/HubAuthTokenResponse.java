@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * Resembles the necessary information returned from the Hub's auth service when requesting an auth token.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
