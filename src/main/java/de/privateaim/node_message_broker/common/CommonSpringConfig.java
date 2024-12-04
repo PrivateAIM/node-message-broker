@@ -1,6 +1,7 @@
 package de.privateaim.node_message_broker.common;
 
 import de.privateaim.node_message_broker.common.hub.HttpHubClient;
+import de.privateaim.node_message_broker.common.hub.HttpHubClientConfig;
 import de.privateaim.node_message_broker.common.hub.HubClient;
 import de.privateaim.node_message_broker.common.hub.auth.HttpHubAuthClient;
 import de.privateaim.node_message_broker.common.hub.auth.HttpHubAuthClientConfig;
@@ -54,7 +55,12 @@ public class CommonSpringConfig {
 
     @Bean
     public HubClient hubClient(@Qualifier("HUB_CORE_WEB_CLIENT") WebClient alwaysReAuthenticatedWebClient) {
-        return new HttpHubClient(alwaysReAuthenticatedWebClient);
+        var clientConfig = new HttpHubClientConfig.Builder()
+                .withMaxRetries(5)
+                .withRetryDelayMs(1000)
+                .build();
+
+        return new HttpHubClient(alwaysReAuthenticatedWebClient, clientConfig);
     }
 
     @Qualifier("HUB_AUTH_WEB_CLIENT")

@@ -6,7 +6,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 /**
- * Describes a client that
+ * Describes a client able to carry out Hub related operations.
  */
 public sealed interface HubClient permits HttpHubClient {
 
