@@ -3,6 +3,7 @@ package de.privateaim.node_message_broker.common;
 import de.privateaim.node_message_broker.common.hub.HttpHubClient;
 import de.privateaim.node_message_broker.common.hub.HubClient;
 import de.privateaim.node_message_broker.common.hub.auth.HttpHubAuthClient;
+import de.privateaim.node_message_broker.common.hub.auth.HttpHubAuthClientConfig;
 import de.privateaim.node_message_broker.common.hub.auth.HubAuthClient;
 import de.privateaim.node_message_broker.common.hub.auth.RenewAuthTokenFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -56,10 +57,23 @@ public class CommonSpringConfig {
         return new HttpHubClient(alwaysReAuthenticatedWebClient);
     }
 
+    @Qualifier("HUB_AUTH_WEB_CLIENT")
+    @Bean
+    WebClient hubAuthWebClient() {
+        return WebClient.builder()
+                .baseUrl(hubAuthBaseUrl)
+                .defaultHeaders(httpHeaders -> httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON)))
+                .build();
+    }
+
     @Qualifier("HUB_AUTH_CLIENT")
     @Bean
-    public HubAuthClient hubAuthClient() {
-        return HttpHubAuthClient.create(hubAuthBaseUrl);
+    public HubAuthClient hubAuthClient(@Qualifier("HUB_AUTH_WEB_CLIENT") WebClient webClient) {
+        var clientConfig = new HttpHubAuthClientConfig.Builder()
+                .withMaxRetries(5)
+                .withRetryDelayMs(1000)
+                .build();
+        return new HttpHubAuthClient(webClient, clientConfig);
     }
 
     @Qualifier("HUB_AUTH_RENEW_TOKEN")
