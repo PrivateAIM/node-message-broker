@@ -5,7 +5,7 @@ import reactor.core.publisher.Mono;
 /**
  * Describes a client able to carry out authentication related operations.
  */
-public sealed interface HubAuthClient permits HttpHubAuthClient {
+public interface HubAuthClient {
 
     /**
      * Asynchronously requests an access token from the hub using the "robot_credentials" grant type.
