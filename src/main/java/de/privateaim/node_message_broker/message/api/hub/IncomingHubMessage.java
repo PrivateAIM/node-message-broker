@@ -4,17 +4,24 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.NonNull;
 
+/**
+ * Representation of an incoming message that was sent by another node via the Hub.
+ *
+ * @param sender   information about the sender
+ * @param message  payload of the message
+ * @param metadata metadata associated with the message
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record HubReceiveMessage(
+public record IncomingHubMessage(
         @JsonProperty("from")
         @NonNull
-        HubReceiveMessageSender sender,
+        HubMessageSender sender,
 
         @JsonProperty("data")
         Object message,
 
         @JsonProperty("metadata")
         @NonNull
-        HubMessageMetaData metaData
+        HubMessageMetadata metadata
 ) {
 }

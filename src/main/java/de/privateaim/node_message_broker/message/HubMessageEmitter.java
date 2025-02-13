@@ -1,12 +1,18 @@
 package de.privateaim.node_message_broker.message;
 
-import de.privateaim.node_message_broker.message.api.hub.HubSendMessage;
+import de.privateaim.node_message_broker.message.api.hub.OutgoingHubMessage;
 import io.socket.client.Socket;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 
-public final class HubMessageEmitter implements MessageEmitter {
+/**
+ * An emitter for emitting messages to other nodes via the Hub.
+ */
+@Slf4j
+public final class HubMessageEmitter implements MessageEmitter<OutgoingHubMessage> {
 
     private final Socket socket;
 
@@ -18,8 +24,13 @@ public final class HubMessageEmitter implements MessageEmitter {
     }
 
     @Override
-    public Mono<Void> emitMessage(HubSendMessage message) {
-        return Mono.fromCallable(() -> socket.emit(SOCKET_SEND_MESSAGE_IDENTIFIER, message))
+    public Mono<Void> emitMessage(OutgoingHubMessage message) {
+        var serializedMessage = new JSONObject(message);
+
+        log.info("emitting message");
+        log.info(serializedMessage.toString());
+
+        return Mono.fromCallable(() -> socket.emit(SOCKET_SEND_MESSAGE_IDENTIFIER, serializedMessage))
                 .then(Mono.empty());
     }
 }

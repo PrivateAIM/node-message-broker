@@ -3,7 +3,10 @@ package de.privateaim.node_message_broker.message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.privateaim.node_message_broker.common.hub.HubClient;
 import de.privateaim.node_message_broker.common.hub.auth.HubAuthClient;
+import de.privateaim.node_message_broker.message.api.hub.IncomingHubMessage;
+import de.privateaim.node_message_broker.message.api.hub.OutgoingHubMessage;
 import de.privateaim.node_message_broker.message.subscription.MessageSubscriptionService;
+import de.privateaim.node_message_broker.message.subscription.MessageSubscriptionServiceImpl;
 import de.privateaim.node_message_broker.message.subscription.persistence.MessageSubscriptionRepository;
 import io.socket.client.IO;
 import io.socket.client.Manager;
@@ -20,6 +23,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
 
 @Slf4j
 @Configuration
@@ -39,8 +43,9 @@ class MessageSpringConfig {
 
     @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET")
     @Bean(destroyMethod = "disconnect")
-    public Socket underlyingMessengerSocket(@Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient,
-                                            @Qualifier("HUB_MESSAGE_LISTENER") MessageListener messageListener) {
+    public Socket underlyingMessengerSocket(
+            @Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient,
+            @Qualifier("HUB_MESSAGE_LISTENER") MessageListener messageListener) {
         IO.Options options = IO.Options.builder()
                 .setPath(null)
                 .setAuth(new HashMap<>())
@@ -71,7 +76,7 @@ class MessageSpringConfig {
                 });
 
         socket.on(SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER, objects -> {
-                    log.info("processing incoming message");
+                    log.debug("processing incoming message");
                     messageListener.onMessage(objects[0].toString().getBytes(StandardCharsets.UTF_8));
                 }
         );
@@ -82,12 +87,15 @@ class MessageSpringConfig {
 
     @Qualifier("HUB_MESSENGER_SOCKET")
     @Bean
-    public MessageEmitter hubMessageSocket(@Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET") Socket socket) {
+    public MessageEmitter<OutgoingHubMessage> hubMessageSocket(
+            @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET") Socket socket) {
         return new HubMessageEmitter(socket);
     }
 
     @Bean
-    public MessageService messageService(@Qualifier("HUB_MESSENGER_SOCKET") MessageEmitter socket, HubClient hubClient) {
+    public MessageService messageService(
+            @Qualifier("HUB_MESSENGER_SOCKET") MessageEmitter<OutgoingHubMessage> socket,
+            HubClient hubClient) {
         return new MessageService(socket, hubClient);
     }
 
@@ -101,8 +109,9 @@ class MessageSpringConfig {
 
 
     @Bean
-    MessageSubscriptionService messageSubscriptionService(MessageSubscriptionRepository messageSubscriptionRepository) {
-        return new MessageSubscriptionService(messageSubscriptionRepository);
+    MessageSubscriptionService messageSubscriptionService(
+            MessageSubscriptionRepository messageSubscriptionRepository) {
+        return new MessageSubscriptionServiceImpl(messageSubscriptionRepository);
     }
 
     @Qualifier("HUB_MESSAGE_JSON_MAPPER")
@@ -113,15 +122,17 @@ class MessageSpringConfig {
 
     @Qualifier("HUB_MESSAGE_CONSUMER_FORWARD")
     @Bean
-    MessageConsumer hubMessageConsumer(@Qualifier("HUB_MESSAGE_FORWARD_WEB_CLIENT") WebClient webClient,
-                                       MessageSubscriptionService messageSubscriptionService) {
-        return new HubMessageForwarder(webClient, messageSubscriptionService);
+    Consumer<IncomingHubMessage> hubMessageConsumer(
+            @Qualifier("HUB_MESSAGE_FORWARD_WEB_CLIENT") WebClient webClient,
+            MessageSubscriptionService messageSubscriptionService) {
+        return new HubMessageSubscriptionForwarder(webClient, messageSubscriptionService);
     }
 
     @Qualifier("HUB_MESSAGE_LISTENER")
     @Bean
-    MessageListener hubMessageListener(@Qualifier("HUB_MESSAGE_CONSUMER_FORWARD") MessageConsumer hubMessageConsumer,
-                                       @Qualifier("HUB_MESSAGE_JSON_MAPPER") ObjectMapper jsonMapper) {
+    MessageListener hubMessageListener(
+            @Qualifier("HUB_MESSAGE_CONSUMER_FORWARD") Consumer<IncomingHubMessage> hubMessageConsumer,
+            @Qualifier("HUB_MESSAGE_JSON_MAPPER") ObjectMapper jsonMapper) {
         return new HubMessageListener(hubMessageConsumer, jsonMapper);
     }
 }

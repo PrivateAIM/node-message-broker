@@ -41,7 +41,7 @@ public final class MessageSubscriptionController {
             @PathVariable String analysisId,
             @PathVariable UUID subscriptionId) {
 
-        return messageSubscriptionService.getSubscription(analysisId, subscriptionId)
+        return messageSubscriptionService.getSubscription(subscriptionId)
                 .map(subscription -> {
                     var response = new MessageSubscriptionResponse(
                             subscription.id(),

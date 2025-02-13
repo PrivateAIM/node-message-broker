@@ -1,43 +1,46 @@
 package de.privateaim.node_message_broker.message.subscription;
 
 import de.privateaim.node_message_broker.message.subscription.persistence.MessageSubscription;
-import de.privateaim.node_message_broker.message.subscription.persistence.MessageSubscriptionRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URL;
 import java.util.UUID;
 
-@Service
-@RequiredArgsConstructor
-public class MessageSubscriptionService {
+/**
+ * Describes a service layer dealing with subscriptions for messages.
+ */
+public interface MessageSubscriptionService {
 
-    private final MessageSubscriptionRepository messageSubscriptionRepository;
+    /**
+     * Adds a single new subscription for messages of a given analysis.
+     *
+     * @param analysisId unique identifier of the analysis that this subscription is associated with
+     * @param webhookUrl will be called for every new message associated with the given analysis
+     * @return the added subscription
+     */
+    Mono<MessageSubscription> addSubscription(String analysisId, URL webhookUrl);
 
-    Mono<MessageSubscription> addSubscription(String analysisId, URL webhookUrl) {
-        var newSubscription = new MessageSubscription(UUID.randomUUID(), analysisId, webhookUrl);
-        return messageSubscriptionRepository.save(newSubscription);
-    }
+    /**
+     * Gets information of a single subscription for messages.
+     *
+     * @param subscriptionId unique identifier of the requested subscription
+     * @return the subscription
+     */
+    Mono<MessageSubscription> getSubscription(UUID subscriptionId);
 
-    Mono<MessageSubscription> getSubscription(String analysisId, UUID subscriptionId) {
-        return messageSubscriptionRepository.findById(subscriptionId)
-                .map(subscription -> {
-                    //if (subscription.analysisId().equals(analysisId)) {
-                    return subscription;
-                    //} else {
-                    //    return Mono.error()
-                    //}
-                });
-        //.doOnError(e -> throw new SubscriptionNotFoundException("", e));
-    }
+    /**
+     * Deletes a single subscription for message.
+     *
+     * @param subscriptionId unique identifier of the subscription to be deleted
+     */
+    Mono<Void> deleteSubscription(UUID subscriptionId);
 
-    Mono<Void> deleteSubscription(UUID subscriptionId) {
-        return messageSubscriptionRepository.deleteById(subscriptionId);
-    }
-
-    public Flux<MessageSubscription> listSubscriptions(String analysisId) {
-        return messageSubscriptionRepository.findAllByAnalysisId(analysisId);
-    }
+    /**
+     * Lists all subscriptions for messages associated with a given analysis.
+     *
+     * @param analysisId unique identifier of the analysis that the subscriptions are associated with
+     * @return stream of subscriptions
+     */
+    Flux<MessageSubscription> listSubscriptions(String analysisId);
 }

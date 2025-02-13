@@ -4,11 +4,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * Schema for an HTTP request's body for sending a message to all recipients using a broadcast.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class MessageBroadcastRequest {
-    
+
     @JsonProperty("message")
     @NotNull
-    // TODO: add custom validation annotation checking for a message's size
-    public byte[] message;
+    public Object message;
 }
