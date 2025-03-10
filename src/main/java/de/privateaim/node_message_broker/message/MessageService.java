@@ -1,18 +1,25 @@
 package de.privateaim.node_message_broker.message;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import de.privateaim.node_message_broker.common.hub.HubClient;
-import de.privateaim.node_message_broker.message.api.hub.OutgoingHubMessage;
-import de.privateaim.node_message_broker.message.api.hub.HubMessageMetadata;
-import de.privateaim.node_message_broker.message.api.hub.HubMessageRecipient;
+import de.privateaim.node_message_broker.message.api.MessageBroadcastRequest;
+import de.privateaim.node_message_broker.message.api.MessageRequest;
+import de.privateaim.node_message_broker.message.emit.EmitMessage;
+import de.privateaim.node_message_broker.message.emit.EmitMessageContext;
+import de.privateaim.node_message_broker.message.emit.EmitMessageRecipient;
+import de.privateaim.node_message_broker.message.emit.MessageEmitter;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
-
-import static java.util.Objects.requireNonNull;
+import java.util.stream.Collectors;
 
 /**
  * A service dealing with messages.
@@ -22,57 +29,106 @@ import static java.util.Objects.requireNonNull;
 @RequiredArgsConstructor
 public final class MessageService {
 
-    private final MessageEmitter<OutgoingHubMessage> messageEmitter;
+    private final MessageEmitter<EmitMessage> messageEmitter;
 
     private final HubClient hubClient;
 
-    // TODO: add function to receive public keys for encryption!
-
-    Mono<Void> sendBroadcastMessage(String analysisId, Object message) {
-        requireNonNull(analysisId, "analysis id must not be null");
+    /**
+     * Sends a message as a broadcast to all eligible recipients. That is, every node participating within the analysis
+     * that this message is associated with.
+     * <p>
+     * This function does NOT guarantee that messages are sent to all recipients. If a message cannot be sent then
+     * sending it not retried!
+     *
+     * @param analysisId unique identifier of the analysis that this message belongs to
+     * @param messageReq request describing the message to be sent
+     * @return A completed {@link Mono}.
+     */
+    Mono<Void> sendBroadcastMessage(@NotNull String analysisId, @NotNull MessageBroadcastRequest messageReq) {
+        if (analysisId == null) {
+            return Mono.error(new NullPointerException("analysis id must not be null"));
+        }
         if (analysisId.isBlank()) {
-            throw new IllegalArgumentException("analysis id must not be blank");
+            return Mono.error(new IllegalArgumentException("analysis id must not be blank"));
+        }
+        if (messageReq == null) {
+            return Mono.error(new NullPointerException("message request must not be null"));
         }
 
-        return Mono.zip(
-                        generateMessageId(),
-                        hubClient.fetchAnalysisNodes(analysisId)
-                                .map(participants -> participants.stream()
-                                        .map(participant -> new HubMessageRecipient("robot", participant.node.robotId))
-                                        .toList()))
-                .map(messageIdWithRecipients ->
-                        new OutgoingHubMessage(
-                                messageIdWithRecipients.getT2(),
-                                message,
-                                new HubMessageMetadata(messageIdWithRecipients.getT1(), analysisId)))
-                .flatMap(messageEmitter::emitMessage);
+        return getRobotIdsOffAllParticipatingAnalysisNodes(analysisId)
+                .onErrorMap(err -> new AnalysisNodesLookupException("could not look up analysis nodes for analysis `%s`"
+                        .formatted(analysisId), err))
+                .flatMap(robotIds ->
+                        sendIndividualMessages(buildIndividualMessages(analysisId, messageReq.message,
+                                robotIds.stream().toList())));
     }
 
-    Mono<Void> sendMessage(String analysisId, List<String> robotIdsOfReceivingNodes, Object message) {
-        requireNonNull(analysisId, "analysis id must not be null");
+    /**
+     * Sends a message to selected recipients. These recipients are described within the given request and MUST be part
+     * of the analysis that this message belongs to.
+     * <p>
+     * This function does NOT guarantee that messages are sent to all selected recipients. If a message cannot be sent
+     * then sending is not retried!
+     *
+     * @param analysisId unique identifier of the analysis that this message belongs to
+     * @param messageReq request describing the message to be sent
+     * @return A completed {@link Mono}.
+     */
+    Mono<Void> sendMessageToSelectedRecipients(@NotNull String analysisId, @NotNull MessageRequest messageReq) {
+        if (analysisId == null) {
+            return Mono.error(new NullPointerException("analysis id must not be null"));
+        }
         if (analysisId.isBlank()) {
-            throw new IllegalArgumentException("analysis id must not be blank");
+            return Mono.error(new IllegalArgumentException("analysis id must not be blank"));
         }
-        requireNonNull(robotIdsOfReceivingNodes, "list of robot ids of receiving nodes must not be null");
-        if (robotIdsOfReceivingNodes.isEmpty()) {
-            throw new IllegalArgumentException("there has to be at least a single recipient");
+        if (messageReq == null) {
+            return Mono.error(new NullPointerException("message request must not be null"));
+        }
+        if (messageReq.recipients.isEmpty()) {
+            return Mono.error(new IllegalArgumentException("recipients must not be empty"));
         }
 
-        // TODO: check if all recipients are actually part of the analysis!!!
+        return getRobotIdsOffAllParticipatingAnalysisNodes(analysisId)
+                .onErrorMap(err -> new AnalysisNodesLookupException("could not look up analysis nodes", err))
+                .flatMap(robotIds -> {
+                    if (robotIds.containsAll(messageReq.recipients)) {
 
-
-        var messageRecipients = robotIdsOfReceivingNodes.stream().map(id -> new HubMessageRecipient("robot", id)).toList();
-
-        return generateMessageId()
-                .map(messageId ->
-                        new OutgoingHubMessage(
-                                messageRecipients,
-                                message,
-                                new HubMessageMetadata(messageId, analysisId)))
-                .flatMap(messageEmitter::emitMessage);
+                        return sendIndividualMessages(buildIndividualMessages(analysisId, messageReq.message,
+                                messageReq.recipients));
+                    } else {
+                        return Mono.error(new InvalidMessageRecipientsException("list of recipients contains at least" +
+                                "one recipients that is not part of the analysis"));
+                    }
+                });
     }
 
-    Mono<UUID> generateMessageId() {
-        return Mono.just(UUID.randomUUID());
+    private Mono<Void> sendIndividualMessages(Flux<EmitMessage> messages) {
+        return messages.flatMap(msg ->
+                        messageEmitter.emitMessage(msg)
+                                .doOnError(err -> log.error("emitting message `{}` to node `{}` failed",
+                                        msg.context().messageId(), msg.recipient().nodeRobotId(), err))
+                                .onErrorResume(err -> Mono.empty()))
+                .then(Mono.empty());
+    }
+
+    private Mono<Set<String>> getRobotIdsOffAllParticipatingAnalysisNodes(String analysisId) {
+        return hubClient.fetchAnalysisNodes(analysisId)
+                .map(nodes -> nodes.stream()
+                        .map(n -> n.node.robotId)
+                        .collect(Collectors.toSet()));
+    }
+
+    private Flux<EmitMessage> buildIndividualMessages(String analysisId, JsonNode message,
+                                                      List<String> recipientRobotIds) {
+        var messageId = UUID.randomUUID();
+        return Flux.fromIterable(recipientRobotIds.stream().map(robotId -> EmitMessage.builder()
+                                .sendTo(new EmitMessageRecipient(robotId))
+                                .withPayload(message.toString().getBytes(StandardCharsets.UTF_8))
+                                .inContext(new EmitMessageContext(
+                                        messageId,
+                                        analysisId))
+                                .build())
+                        .toList())
+                .onErrorMap(err -> new RuntimeException("could not prepare individual messages", err));
     }
 }

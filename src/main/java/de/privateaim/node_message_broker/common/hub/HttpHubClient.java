@@ -2,13 +2,23 @@ package de.privateaim.node_message_broker.common.hub;
 
 import de.privateaim.node_message_broker.common.hub.api.AnalysisNode;
 import de.privateaim.node_message_broker.common.hub.api.HubResponseContainer;
+import de.privateaim.node_message_broker.common.hub.api.Node;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.util.encoders.Hex;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.security.interfaces.ECPublicKey;
 import java.time.Duration;
 import java.util.List;
 
@@ -55,6 +65,53 @@ public final class HttpHubClient implements HubClient {
                         .filter(err -> err instanceof HubCoreServerException)
                         .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) ->
                                 new HubAnalysisNodesNotObtainable("exhausted maximum number of retries of '%d'"
+                                        .formatted(config.maxRetries())))));
+    }
+
+    // TODO: add cache here! - see spring annotations
+    @Override
+    public Mono<ECPublicKey> fetchPublicKey(String robotId) {
+        return authenticatedWebClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/nodes")
+                        .queryParam("filter[robot_id]", robotId)
+                        .build()
+                )
+                .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError,
+                        response -> {
+                            var err = new HubCoreServerException(("could not fetch public key for node with robot id" +
+                                    " `%s` from hub").formatted(robotId));
+
+                            log.warn("retrying to request public key for node with robot id `{}` from hub after" +
+                                    " failed attempt", robotId, err);
+                            return Mono.error(err);
+                        })
+                .onStatus((code) -> code.isSameCodeAs(HttpStatus.BAD_REQUEST),
+                        response -> Mono.error(
+                                new Exception("node with associated robot id `%s` not found".formatted(robotId))
+                        ))
+                .bodyToMono(new ParameterizedTypeReference<HubResponseContainer<List<Node>>>() {
+                })
+                .flatMap(resp -> {
+                    if (resp.data.size() != 1) {
+                        return Mono.error(new Exception("cannot find node with robot id `%s`".formatted(robotId)));
+                    }
+                    return Mono.just(Hex.decode(resp.data.getFirst().publicKey.getBytes()));
+                })
+                .flatMap(pubKey -> {
+                    try {
+                        var key = (SubjectPublicKeyInfo) new PEMParser(new InputStreamReader(new ByteArrayInputStream(pubKey))).readObject();
+                        return Mono.just((ECPublicKey) new JcaPEMKeyConverter().getPublicKey(key));
+                    } catch (IOException e) {
+                        return Mono.error(new Exception("failed to read public key", e));
+                    }
+                })
+                .retryWhen(Retry.backoff(config.maxRetries(), Duration.ofMillis(config.retryDelayMs()))
+                        .jitter(0.75)
+                        .filter(err -> err instanceof HubCoreServerException)
+                        .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) ->
+                                new HubNodePublicKeyNotObtainable("exhausted maximum number of retries of '%d'"
                                         .formatted(config.maxRetries())))));
     }
 }

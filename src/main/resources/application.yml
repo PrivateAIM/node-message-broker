@@ -25,3 +25,5 @@ app:
       robotSecret: ${HUB_AUTH_ROBOT_SECRET}
     messenger:
       baseUrl: ${HUB_MESSENGER_BASE_URL}
+  security:
+    nodePrivateECDHKey: ${SECURITY_NODE_PRIVATE_ECDH_KEY}

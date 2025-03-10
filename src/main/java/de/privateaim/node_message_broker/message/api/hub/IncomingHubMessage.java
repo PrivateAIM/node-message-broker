@@ -8,7 +8,7 @@ import lombok.NonNull;
  * Representation of an incoming message that was sent by another node via the Hub.
  *
  * @param sender   information about the sender
- * @param message  payload of the message
+ * @param payload  encrypted of the message
  * @param metadata metadata associated with the message
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -18,7 +18,8 @@ public record IncomingHubMessage(
         HubMessageSender sender,
 
         @JsonProperty("data")
-        Object message,
+        @NonNull
+        String payload,
 
         @JsonProperty("metadata")
         @NonNull

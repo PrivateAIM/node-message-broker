@@ -3,8 +3,13 @@ package de.privateaim.node_message_broker.message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.privateaim.node_message_broker.common.hub.HubClient;
 import de.privateaim.node_message_broker.common.hub.auth.HubAuthClient;
-import de.privateaim.node_message_broker.message.api.hub.IncomingHubMessage;
-import de.privateaim.node_message_broker.message.api.hub.OutgoingHubMessage;
+import de.privateaim.node_message_broker.message.crypto.HubMessageCryptoService;
+import de.privateaim.node_message_broker.message.crypto.MessageCryptoService;
+import de.privateaim.node_message_broker.message.emit.EmitMessage;
+import de.privateaim.node_message_broker.message.emit.HubMessageEmitter;
+import de.privateaim.node_message_broker.message.emit.HubMessageEncryptionMiddleware;
+import de.privateaim.node_message_broker.message.emit.MessageEmitter;
+import de.privateaim.node_message_broker.message.receive.*;
 import de.privateaim.node_message_broker.message.subscription.MessageSubscriptionService;
 import de.privateaim.node_message_broker.message.subscription.MessageSubscriptionServiceImpl;
 import de.privateaim.node_message_broker.message.subscription.persistence.MessageSubscriptionRepository;
@@ -12,18 +17,28 @@ import io.socket.client.IO;
 import io.socket.client.Manager;
 import io.socket.client.Socket;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.interfaces.ECPrivateKey;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Slf4j
 @Configuration
@@ -38,6 +53,9 @@ class MessageSpringConfig {
     @Value("${app.hub.messenger.baseUrl}")
     private String hubMessengerBaseUrl;
 
+    @Value("${app.security.nodePrivateECDHKey}")
+    private String nodePrivateECDHKey;
+
     private static final String SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER = "send";
 
 
@@ -45,7 +63,7 @@ class MessageSpringConfig {
     @Bean(destroyMethod = "disconnect")
     public Socket underlyingMessengerSocket(
             @Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient,
-            @Qualifier("HUB_MESSAGE_LISTENER") MessageListener messageListener) {
+            @Qualifier("HUB_MESSAGE_RECEIVER") MessageReceiver messageReceiver) {
         IO.Options options = IO.Options.builder()
                 .setPath(null)
                 .setAuth(new HashMap<>())
@@ -77,7 +95,9 @@ class MessageSpringConfig {
 
         socket.on(SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER, objects -> {
                     log.debug("processing incoming message");
-                    messageListener.onMessage(objects[0].toString().getBytes(StandardCharsets.UTF_8));
+                    messageReceiver.processMessage(objects[0].toString().getBytes(StandardCharsets.UTF_8))
+                            .doOnError(err -> log.error("failed to process incoming message", err))
+                            .subscribe();
                 }
         );
 
@@ -85,21 +105,99 @@ class MessageSpringConfig {
         return socket;
     }
 
+
+    @Bean
+    MessageCryptoService hubMessageCryptoService() {
+        return new HubMessageCryptoService(new SecureRandom());
+    }
+
+    @Qualifier("NODE_SECURITY_PRIVATE_ECDH_KEY")
+    @Bean
+    ECPrivateKey nodePrivateKey() {
+        var decodedPrivateECDHKey = Base64.getDecoder().decode(nodePrivateECDHKey);
+        var decodedPrivateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(decodedPrivateECDHKey));
+
+        try {
+
+            var pemParser = new PEMParser(decodedPrivateECDHKeyReader);
+            var privateKeyInfo = PrivateKeyInfo.getInstance(pemParser.readObject());
+
+            var keyConverter = new JcaPEMKeyConverter();
+            return (ECPrivateKey) keyConverter.getPrivateKey(privateKeyInfo);
+        } catch (IOException e) {
+            throw new RuntimeException("cannot read node's private ECDH key", e);
+        }
+    }
+
+    @Qualifier("HUB_MESSAGE_EMIT_KDF_KEYING_INFO_GEN")
+    @Bean
+    Function<EmitMessage, byte[]> hubMessageEmitKDFKeyingInfoGenerator() {
+        return (message) -> (message.context().messageId() + message.context().analysisId()).getBytes();
+    }
+
+    @Qualifier("HUB_MESSAGE_RECEIVE_KDF_KEYING_INFO_GEN")
+    @Bean
+    Function<ReceiveMessage, byte[]> hubMessageReceiveKDFKeyingInfoGenerator() {
+        return (message) -> (message.context().messageId() + message.context().analysisId()).getBytes();
+    }
+
+    @Qualifier("HUB_MESSAGE_EMIT_MIDDLEWARE_ENCRYPT")
+    @Bean
+    Function<EmitMessage, Mono<EmitMessage>> hubMessageEmitEncryptionMiddleware(
+            @Qualifier("NODE_SECURITY_PRIVATE_ECDH_KEY") ECPrivateKey nodePrivateKey,
+            MessageCryptoService messageCryptoService,
+            HubClient hubClient,
+            @Qualifier("HUB_MESSAGE_EMIT_KDF_KEYING_INFO_GEN") Function<EmitMessage, byte[]> kdfKeyingInfoGenerator
+    ) {
+        return new HubMessageEncryptionMiddleware(
+                nodePrivateKey,
+                messageCryptoService,
+                hubClient,
+                kdfKeyingInfoGenerator
+        );
+    }
+
+    @Qualifier("HUB_MESSAGE_EMIT_MIDDLEWARE_BASE64_ENCODE")
+    @Bean
+    Function<EmitMessage, Mono<EmitMessage>> hubMessageBase64EncodingMiddleware() {
+        var b64Encoder = Base64.getEncoder();
+
+        return message -> Mono.just(new EmitMessage(
+                message.recipient(),
+                b64Encoder.encode(message.payload()),
+                message.context()
+        ));
+    }
+
+    @Qualifier("HUB_MESSAGE_EMIT_MIDDLEWARES")
+    @Bean
+    public List<Function<EmitMessage, Mono<EmitMessage>>> hubMessageEmitMiddlewares(
+            @Qualifier("HUB_MESSAGE_EMIT_MIDDLEWARE_ENCRYPT") Function<EmitMessage, Mono<EmitMessage>> encryptMiddleware,
+            @Qualifier("HUB_MESSAGE_EMIT_MIDDLEWARE_BASE64_ENCODE") Function<EmitMessage, Mono<EmitMessage>> base64EncodeMiddleware
+    ) {
+        return List.of(encryptMiddleware,
+                base64EncodeMiddleware);
+    }
+
     @Qualifier("HUB_MESSENGER_SOCKET")
     @Bean
-    public MessageEmitter<OutgoingHubMessage> hubMessageSocket(
-            @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET") Socket socket) {
-        return new HubMessageEmitter(socket);
+    public MessageEmitter<EmitMessage> hubMessageSocket(
+            @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET") Socket socket,
+            @Qualifier("HUB_MESSAGE_EMIT_MIDDLEWARES") List<Function<EmitMessage, Mono<EmitMessage>>> middlewares
+    ) {
+        var hubMessageEmitter = new HubMessageEmitter(socket);
+        middlewares.forEach(hubMessageEmitter::registerMiddleware);
+        return hubMessageEmitter;
     }
 
     @Bean
     public MessageService messageService(
-            @Qualifier("HUB_MESSENGER_SOCKET") MessageEmitter<OutgoingHubMessage> socket,
+            @Qualifier("HUB_MESSENGER_SOCKET") MessageEmitter<EmitMessage> socket,
             HubClient hubClient) {
         return new MessageService(socket, hubClient);
     }
 
-    @Qualifier("HUB_MESSAGE_FORWARD_WEB_CLIENT")
+    @Qualifier("HUB_MESSAGE_RECEIVE_FORWARD_WEB_CLIENT")
     @Bean
     public WebClient messageForwardWebClient() {
         return WebClient.builder()
@@ -107,32 +205,82 @@ class MessageSpringConfig {
                 .build();
     }
 
-
     @Bean
     MessageSubscriptionService messageSubscriptionService(
             MessageSubscriptionRepository messageSubscriptionRepository) {
         return new MessageSubscriptionServiceImpl(messageSubscriptionRepository);
     }
 
-    @Qualifier("HUB_MESSAGE_JSON_MAPPER")
+    @Qualifier("HUB_MESSAGE_RECEIVE_JSON_MAPPER")
     @Bean
     ObjectMapper hubMessageJsonMapper() {
         return new ObjectMapper();
     }
 
-    @Qualifier("HUB_MESSAGE_CONSUMER_FORWARD")
+    @Qualifier("HUB_MESSAGE_RECEIVE_MIDDLEWARE_DECRYPT")
     @Bean
-    Consumer<IncomingHubMessage> hubMessageConsumer(
-            @Qualifier("HUB_MESSAGE_FORWARD_WEB_CLIENT") WebClient webClient,
-            MessageSubscriptionService messageSubscriptionService) {
-        return new HubMessageSubscriptionForwarder(webClient, messageSubscriptionService);
+    Function<ReceiveMessage, Mono<ReceiveMessage>> hubMessageReceiveDecryptionMiddleware(
+            @Qualifier("NODE_SECURITY_PRIVATE_ECDH_KEY") ECPrivateKey nodePrivateKey,
+            MessageCryptoService messageCryptoService,
+            HubClient hubClient,
+            @Qualifier("HUB_MESSAGE_RECEIVE_KDF_KEYING_INFO_GEN") Function<ReceiveMessage, byte[]> kdfKeyingInfoGenerator
+    ) {
+        return new HubMessageDecryptionMiddleware(
+                nodePrivateKey,
+                messageCryptoService,
+                hubClient,
+                kdfKeyingInfoGenerator
+        );
     }
 
-    @Qualifier("HUB_MESSAGE_LISTENER")
+    @Qualifier("HUB_MESSAGE_RECEIVE_MIDDLEWARE_BASE64_DECODE")
     @Bean
-    MessageListener hubMessageListener(
-            @Qualifier("HUB_MESSAGE_CONSUMER_FORWARD") Consumer<IncomingHubMessage> hubMessageConsumer,
-            @Qualifier("HUB_MESSAGE_JSON_MAPPER") ObjectMapper jsonMapper) {
-        return new HubMessageListener(hubMessageConsumer, jsonMapper);
+    Function<ReceiveMessage, Mono<ReceiveMessage>> hubMessageBase64DecodingMiddleware() {
+        var b64Encoder = Base64.getDecoder();
+
+        return message -> Mono.just(new ReceiveMessage(
+                message.sender(),
+                b64Encoder.decode(message.payload()),
+                message.context()
+        ));
+    }
+
+    @Qualifier("HUB_MESSAGE_RECEIVE_MIDDLEWARES")
+    @Bean
+    List<Function<ReceiveMessage, Mono<ReceiveMessage>>> hubMessageReceiveMiddlewares(
+            @Qualifier("HUB_MESSAGE_RECEIVE_MIDDLEWARE_BASE64_DECODE") Function<ReceiveMessage, Mono<ReceiveMessage>> base64DecodeMiddleware,
+            @Qualifier("HUB_MESSAGE_RECEIVE_MIDDLEWARE_DECRYPT") Function<ReceiveMessage, Mono<ReceiveMessage>> decryptMiddleware
+    ) {
+        return List.of(
+                base64DecodeMiddleware,
+                decryptMiddleware);
+    }
+
+    @Qualifier("HUB_MESSAGE_RECEIVE_CONSUMER")
+    @Bean
+    MessageConsumer hubMessageConsumer(
+            @Qualifier("HUB_MESSAGE_RECEIVE_FORWARD_WEB_CLIENT") WebClient webClient,
+            MessageSubscriptionService messageSubscriptionService
+    ) {
+        var config = new HubMessageWebhookSubscriptionForwarderConfig.Builder()
+                .withMaxRetries(5)
+                .withRetryDelayMs(1000)
+                .build();
+
+        return new HubMessageWebhookSubscriptionForwarder(webClient, messageSubscriptionService, config);
+    }
+
+    @Qualifier("HUB_MESSAGE_RECEIVER")
+    @Bean
+    MessageReceiver hubMessageReceiver(
+            @Qualifier("HUB_MESSAGE_RECEIVE_JSON_MAPPER") ObjectMapper jsonMapper,
+            @Qualifier("HUB_MESSAGE_RECEIVE_MIDDLEWARES") List<Function<ReceiveMessage, Mono<ReceiveMessage>>> middlewares,
+            @Qualifier("HUB_MESSAGE_RECEIVE_CONSUMER") MessageConsumer messageConsumer
+    ) {
+        var messageReceiver = new HubMessageReceiver(jsonMapper);
+        middlewares.forEach(messageReceiver::registerMiddleware);
+        messageReceiver.registerConsumer(messageConsumer);
+
+        return messageReceiver;
     }
 }

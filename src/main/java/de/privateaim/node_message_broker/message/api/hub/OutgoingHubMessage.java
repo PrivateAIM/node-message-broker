@@ -7,16 +7,16 @@ import java.util.List;
 /**
  * Representation of an outgoing message that is sent to other nodes via the Hub.
  *
- * @param recipients information about the recipients
- * @param message    payload of the message
- * @param metadata   metadata associated with the message
+ * @param recipient information about the recipient
+ * @param message   payload of the message
+ * @param metadata  metadata associated with the message
  */
 public record OutgoingHubMessage(
         @JSONPropertyName("to")
-        List<HubMessageRecipient> recipients,
+        List<HubMessageRecipient> recipient,
 
         @JSONPropertyName("data")
-        Object message,
+        String message,
 
         @JSONPropertyName("metadata")
         HubMessageMetadata metadata
