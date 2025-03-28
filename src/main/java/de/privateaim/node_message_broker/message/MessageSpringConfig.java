@@ -56,6 +56,9 @@ class MessageSpringConfig {
     @Value("${app.security.nodePrivateECDHKey}")
     private String nodePrivateECDHKey;
 
+    @Value("${app.hub.auth.robotId}")
+    private String selfRobotId;
+
     private static final String SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER = "send";
 
 
@@ -194,7 +197,7 @@ class MessageSpringConfig {
     public MessageService messageService(
             @Qualifier("HUB_MESSENGER_SOCKET") MessageEmitter<EmitMessage> socket,
             HubClient hubClient) {
-        return new MessageService(socket, hubClient);
+        return new MessageService(socket, hubClient, selfRobotId);
     }
 
     @Qualifier("HUB_MESSAGE_RECEIVE_FORWARD_WEB_CLIENT")

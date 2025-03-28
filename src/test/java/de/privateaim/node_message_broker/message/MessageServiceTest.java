@@ -31,7 +31,7 @@ public final class MessageServiceTest {
 
     @BeforeEach
     public void setUp() {
-        messageService = new MessageService(messageEmitter, hubClient);
+        messageService = new MessageService(messageEmitter, hubClient, "robot-123");
     }
 
     @AfterEach

@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public final class MessageServiceIT {
 
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final String SELF_ROBOT_ID = "robot-123";
 
     private MockWebServer mockWebServer;
 
@@ -61,7 +62,7 @@ public final class MessageServiceIT {
                 .withRetryDelayMs(0)
                 .build());
 
-        messageService = new MessageService(spyMessageEmitter, httpHubClient);
+        messageService = new MessageService(spyMessageEmitter, httpHubClient, SELF_ROBOT_ID);
         emitMessageCaptor = ArgumentCaptor.forClass(EmitMessage.class);
     }
 
@@ -234,10 +235,12 @@ public final class MessageServiceIT {
         }
 
         @Test
-        public void messageGetsEmittedToAllNodesBeingPartOfTheAnalysis() throws JsonProcessingException {
+        public void messageGetsEmittedToAllNodesBeingPartOfTheAnalysisExceptTheSender() throws JsonProcessingException {
             var testAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "robot-1")),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", SELF_ROBOT_ID)),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2")),
+                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", "robot-3"))
+
             );
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
@@ -255,10 +258,12 @@ public final class MessageServiceIT {
                     .verifyComplete();
 
             var emittedMessages = emitMessageCaptor.getAllValues();
-            assertEquals(testAnalysisNodes.size(), emittedMessages.size());
+            assertEquals(testAnalysisNodes.size() - 1, emittedMessages.size());
             assertTrue(emittedMessages.stream().map(msg -> msg.recipient().nodeRobotId())
                     .toList()
-                    .containsAll(testAnalysisNodes.stream().map(analysisNode -> analysisNode.node.robotId)
+                    .containsAll(testAnalysisNodes.stream()
+                            .filter(an -> !an.node.robotId.equals(SELF_ROBOT_ID))
+                            .map(analysisNode -> analysisNode.node.robotId)
                             .toList()));
         }
     }

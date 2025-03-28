@@ -9,7 +9,6 @@ import de.privateaim.node_message_broker.message.emit.EmitMessageContext;
 import de.privateaim.node_message_broker.message.emit.EmitMessageRecipient;
 import de.privateaim.node_message_broker.message.emit.MessageEmitter;
 import jakarta.validation.constraints.NotNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -21,17 +20,28 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A service dealing with messages.
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public final class MessageService {
 
     private final MessageEmitter<EmitMessage> messageEmitter;
-
     private final HubClient hubClient;
+    private final String selfRobotId;
+
+    public MessageService(MessageEmitter<EmitMessage> messageEmitter, HubClient hubClient, String selfRobotId) {
+        this.messageEmitter = requireNonNull(messageEmitter, "message emitter must not be null");
+        this.hubClient = requireNonNull(hubClient, "hub client must not be null");
+        requireNonNull(selfRobotId, "self robot id must not be null");
+        if (selfRobotId.isBlank()) {
+            throw new IllegalArgumentException("self robot id must not be blank");
+        }
+        this.selfRobotId = selfRobotId;
+    }
 
     /**
      * Sends a message as a broadcast to all eligible recipients. That is, every node participating within the analysis
@@ -58,9 +68,13 @@ public final class MessageService {
         return getRobotIdsOffAllParticipatingAnalysisNodes(analysisId)
                 .onErrorMap(err -> new AnalysisNodesLookupException("could not look up analysis nodes for analysis `%s`"
                         .formatted(analysisId), err))
-                .flatMap(robotIds ->
-                        sendIndividualMessages(buildIndividualMessages(analysisId, messageReq.message,
-                                robotIds.stream().toList())));
+                .flatMap(robotIds -> {
+                    var robotIdsWithoutSelf = robotIds.stream().filter(robotId -> !robotId.equals(selfRobotId))
+                            .toList();
+
+                    var messages = buildIndividualMessages(analysisId, messageReq.message, robotIdsWithoutSelf);
+                    return sendIndividualMessages(messages);
+                });
     }
 
     /**
