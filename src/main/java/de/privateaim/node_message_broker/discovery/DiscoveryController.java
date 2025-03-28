@@ -1,6 +1,7 @@
 package de.privateaim.node_message_broker.discovery;
 
-import de.privateaim.node_message_broker.discovery.api.Participant;
+import de.privateaim.node_message_broker.discovery.api.ParticipantResponse;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,33 +15,50 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * REST controller for discovery functionality.
+ */
 @RestController
 @RequestMapping("/analyses/{analysisId}/participants")
 public final class DiscoveryController {
 
     private final DiscoveryService discoveryService;
 
-    public DiscoveryController(DiscoveryService discoveryService) {
+    public DiscoveryController(@NotNull DiscoveryService discoveryService) {
         this.discoveryService = requireNonNull(discoveryService, "discovery service must not be null");
     }
 
     @GetMapping()
-    ResponseEntity<Mono<List<Participant>>> discoverAllParticipants(@PathVariable String analysisId) {
+    Mono<ResponseEntity<List<ParticipantResponse>>> discoverAllParticipants(@PathVariable String analysisId) {
         if (analysisId.isBlank()) {
-            // TODO: use ControllerAdvice annotation instead later on...
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "analysis id must not be blank");
+            return Mono.just(ResponseEntity.badRequest().build());
         }
 
-        return ResponseEntity.ok(discoveryService.discoverAllParticipantsOfAnalysis(analysisId));
+        return discoveryService.discoverAllParticipantsOfAnalysis(analysisId)
+                .collectList()
+                .map(participants -> participants.stream()
+                        .map(p -> new ParticipantResponse(p.nodeRobotId(), p.nodeType()))
+                        .toList())
+                .map(ResponseEntity::ok)
+                .onErrorMap(AnalysisNodesLookupException.class, err ->
+                        new ResponseStatusException(HttpStatus.BAD_GATEWAY, err.getMessage(), err));
     }
 
     @GetMapping("/self")
-    ResponseEntity<Mono<Participant>> discoverSelf(@PathVariable String analysisId) {
+    Mono<ResponseEntity<ParticipantResponse>> discoverSelf(@PathVariable String analysisId) {
         if (analysisId.isBlank()) {
-            // TODO: use ControllerAdvice annotation instead later on...
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "analysis id must not be blank");
+            return Mono.just(ResponseEntity.badRequest().build());
         }
 
-        return ResponseEntity.ok(discoveryService.discoverSelfInAnalysis(analysisId));
+        return discoveryService.discoverSelfInAnalysis(analysisId)
+                .map(p -> new ParticipantResponse(p.nodeRobotId(), p.nodeType()))
+                .map(ResponseEntity::ok)
+                .onErrorMap(AnalysisNodesLookupException.class, err ->
+                        new ResponseStatusException(HttpStatus.BAD_GATEWAY, err.getMessage(), err))
+                .onErrorMap(DiscoveryConflictException.class, err ->
+                        new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err.getMessage(), err))
+                .onErrorMap(UndiscoverableSelfException.class, err ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, err.getMessage(), err))
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
     }
 }
