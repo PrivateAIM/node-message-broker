@@ -5,6 +5,9 @@ import reactor.core.publisher.Flux;
 
 import java.util.UUID;
 
+/**
+ * Repository for managing persisted subscriptions.
+ */
 public interface MessageSubscriptionRepository extends ReactiveMongoRepository<MessageSubscription, UUID> {
 
     Flux<MessageSubscription> findAllByAnalysisId(String analysisId);
