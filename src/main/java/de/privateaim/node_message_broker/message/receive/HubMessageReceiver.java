@@ -73,7 +73,7 @@ public final class HubMessageReceiver implements MessageReceiver {
         return Flux.zip(
                         internalMessage,
                         Flux.fromIterable(consumers))
-                .map(messageAndConsumer ->
+                .flatMap(messageAndConsumer ->
                         messageAndConsumer.getT2()
                                 .consume(messageAndConsumer.getT1())
                                 .onErrorResume(err -> {

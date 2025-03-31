@@ -13,9 +13,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -167,5 +169,32 @@ public final class HubMessageReceiverTest {
 
         Mockito.verify(mockedMessageConsumerA, Mockito.times(1)).consume(Mockito.any());
         Mockito.verify(mockedMessageConsumerB, Mockito.times(1)).consume(Mockito.any());
+    }
+
+    @Test
+    public void consumerGetsThoroughlyEvaluated() throws JsonProcessingException, InterruptedException {
+        var latch = new CountDownLatch(1);
+
+        var consumer = new MessageConsumer() {
+            @Override
+            public Mono<Void> consume(ReceiveMessage message) {
+
+                return Flux.fromIterable(List.of("1"))
+                        .flatMap(item -> {
+                            latch.countDown();
+                            return Mono.empty();
+                        })
+                        .then(Mono.empty());
+            }
+        };
+
+        receiver.registerConsumer(consumer);
+
+        var serializedTestMessage = JSON_MAPPER.writeValueAsBytes(TEST_MESSAGE);
+        StepVerifier.create(receiver.processMessage(serializedTestMessage))
+                .expectNext()
+                .verifyComplete();
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS));
     }
 }
