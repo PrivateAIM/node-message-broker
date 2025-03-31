@@ -9,7 +9,6 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -87,24 +86,28 @@ public final class HttpHubClient implements HubClient {
                                     " failed attempt", robotId, err);
                             return Mono.error(err);
                         })
-                .onStatus((code) -> code.isSameCodeAs(HttpStatus.BAD_REQUEST),
-                        response -> Mono.error(
-                                new Exception("node with associated robot id `%s` not found".formatted(robotId))
-                        ))
                 .bodyToMono(new ParameterizedTypeReference<HubResponseContainer<List<Node>>>() {
                 })
                 .flatMap(resp -> {
                     if (resp.data.size() != 1) {
-                        return Mono.error(new Exception("cannot find node with robot id `%s`".formatted(robotId)));
+                        return Mono.error(new NoMatchingNodeFoundException("cannot find node with robot id `%s`"
+                                .formatted(robotId)));
+                    }
+                    if (resp.data.getFirst().publicKey == null) {
+                        return Mono.error(new NoPublicKeyException("node with robot id `%s` has no public key set"
+                                .formatted(robotId)));
                     }
                     return Mono.just(Hex.decode(resp.data.getFirst().publicKey.getBytes()));
                 })
                 .flatMap(pubKey -> {
                     try {
-                        var key = (SubjectPublicKeyInfo) new PEMParser(new InputStreamReader(new ByteArrayInputStream(pubKey))).readObject();
+                        var key = (SubjectPublicKeyInfo) new PEMParser(
+                                new InputStreamReader(new ByteArrayInputStream(pubKey)))
+                                .readObject();
                         return Mono.just((ECPublicKey) new JcaPEMKeyConverter().getPublicKey(key));
                     } catch (IOException e) {
-                        return Mono.error(new Exception("failed to read public key", e));
+                        return Mono.error(new MalformedPublicKeyException("failed to read public key from node with " +
+                                "robot id `%s`".formatted(robotId), e));
                     }
                 })
                 .retryWhen(Retry.backoff(config.maxRetries(), Duration.ofMillis(config.retryDelayMs()))
