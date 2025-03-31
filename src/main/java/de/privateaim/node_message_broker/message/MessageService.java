@@ -65,14 +65,11 @@ public final class MessageService {
             return Mono.error(new NullPointerException("message request must not be null"));
         }
 
-        return getRobotIdsOffAllParticipatingAnalysisNodes(analysisId)
+        return getRobotIdsOffAllOtherParticipatingAnalysisNodes(analysisId)
                 .onErrorMap(err -> new AnalysisNodesLookupException("could not look up analysis nodes for analysis `%s`"
                         .formatted(analysisId), err))
                 .flatMap(robotIds -> {
-                    var robotIdsWithoutSelf = robotIds.stream().filter(robotId -> !robotId.equals(selfRobotId))
-                            .toList();
-
-                    var messages = buildIndividualMessages(analysisId, messageReq.message, robotIdsWithoutSelf);
+                    var messages = buildIndividualMessages(analysisId, messageReq.message, robotIds.stream().toList());
                     return sendIndividualMessages(messages);
                 });
     }
@@ -102,7 +99,7 @@ public final class MessageService {
             return Mono.error(new IllegalArgumentException("recipients must not be empty"));
         }
 
-        return getRobotIdsOffAllParticipatingAnalysisNodes(analysisId)
+        return getRobotIdsOffAllOtherParticipatingAnalysisNodes(analysisId)
                 .onErrorMap(err -> new AnalysisNodesLookupException("could not look up analysis nodes", err))
                 .flatMap(robotIds -> {
                     if (robotIds.containsAll(messageReq.recipients)) {
@@ -110,7 +107,7 @@ public final class MessageService {
                         return sendIndividualMessages(buildIndividualMessages(analysisId, messageReq.message,
                                 messageReq.recipients));
                     } else {
-                        return Mono.error(new InvalidMessageRecipientsException("list of recipients contains at least" +
+                        return Mono.error(new InvalidMessageRecipientsException("list of recipients contains at least " +
                                 "one recipients that is not part of the analysis"));
                     }
                 });
@@ -125,10 +122,11 @@ public final class MessageService {
                 .then(Mono.empty());
     }
 
-    private Mono<Set<String>> getRobotIdsOffAllParticipatingAnalysisNodes(String analysisId) {
+    private Mono<Set<String>> getRobotIdsOffAllOtherParticipatingAnalysisNodes(String analysisId) {
         return hubClient.fetchAnalysisNodes(analysisId)
                 .map(nodes -> nodes.stream()
                         .map(n -> n.node.robotId)
+                        .filter(id -> !id.equals(selfRobotId))
                         .collect(Collectors.toSet()));
     }
 

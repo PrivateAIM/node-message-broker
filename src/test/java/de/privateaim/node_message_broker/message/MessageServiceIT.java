@@ -164,6 +164,28 @@ public final class MessageServiceIT {
 
             Mockito.verify(mockSocket, Mockito.times(testAnalysisNodes.size())).emit(Mockito.any(), Mockito.any());
         }
+
+        @Test
+        public void unableToSendMessageToSelf() throws JsonProcessingException {
+            var testAnalysisNodes = List.of(
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "robot-1")),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2")),
+                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", SELF_ROBOT_ID))
+            );
+            var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
+
+            var messageRequest = new MessageRequest();
+            messageRequest.recipients = List.of("robot-1", "robot-2", SELF_ROBOT_ID);
+            messageRequest.message = JsonNodeFactory.instance.objectNode();
+
+            mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(JSON.writeValueAsString(mockedHubResponse)));
+
+            StepVerifier.create(messageService.sendMessageToSelectedRecipients("analysis-123", messageRequest))
+                    .expectError(InvalidMessageRecipientsException.class)
+                    .verify();
+        }
     }
 
     @Nested
