@@ -29,6 +29,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
@@ -53,8 +54,8 @@ class MessageSpringConfig {
     @Value("${app.hub.messenger.baseUrl}")
     private String hubMessengerBaseUrl;
 
-    @Value("${app.security.nodePrivateECDHKey}")
-    private String nodePrivateECDHKey;
+    @Value("${app.security.nodePrivateECDHKeyFile}")
+    private String nodePrivateECDHKeyFile;
 
     @Value("${app.hub.auth.robotId}")
     private String selfRobotId;
@@ -116,19 +117,23 @@ class MessageSpringConfig {
 
     @Qualifier("NODE_SECURITY_PRIVATE_ECDH_KEY")
     @Bean
-    ECPrivateKey nodePrivateKey() {
-        var decodedPrivateECDHKey = Base64.getDecoder().decode(nodePrivateECDHKey);
-        var decodedPrivateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(decodedPrivateECDHKey));
+    ECPrivateKey nodePrivateKey() throws IOException {
+        try (var fis = new FileInputStream(nodePrivateECDHKeyFile)) {
+            var nodePrivateECDHKeyContent = new String(fis.readAllBytes());
 
-        try {
+            var decodedPrivateECDHKey = Base64.getDecoder().decode(nodePrivateECDHKeyContent);
+            var decodedPrivateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(decodedPrivateECDHKey));
 
-            var pemParser = new PEMParser(decodedPrivateECDHKeyReader);
-            var privateKeyInfo = PrivateKeyInfo.getInstance(pemParser.readObject());
+            try {
 
-            var keyConverter = new JcaPEMKeyConverter();
-            return (ECPrivateKey) keyConverter.getPrivateKey(privateKeyInfo);
-        } catch (IOException e) {
-            throw new RuntimeException("cannot read node's private ECDH key", e);
+                var pemParser = new PEMParser(decodedPrivateECDHKeyReader);
+                var privateKeyInfo = PrivateKeyInfo.getInstance(pemParser.readObject());
+
+                var keyConverter = new JcaPEMKeyConverter();
+                return (ECPrivateKey) keyConverter.getPrivateKey(privateKeyInfo);
+            } catch (IOException e) {
+                throw new RuntimeException("cannot read node's private ECDH key", e);
+            }
         }
     }
 
