@@ -18,15 +18,12 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
-        // TODO: do not keep this open in production -> revise after overhaul
         return http.authorizeHttpRequests(req ->
-                        req.anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .jwkSetUri(jwksUrl)
-                        )
-                )
+                        req.requestMatchers("/actuator/health").permitAll()
+                                .anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 ->
+                        oauth2.jwt(jwt -> jwt
+                                .jwkSetUri(jwksUrl)))
                 .build();
     }
 }
