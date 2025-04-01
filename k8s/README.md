@@ -46,6 +46,7 @@ make sure the following environment variables are set:
 | AUTH_JWKS_URL            | URL to obtain JWKS from. Using keycloak this has the pattern `<KEYCLOAK_BASE_URL>/realms/<YOUR_REALM>/protocol/openid-connect/certs`. |
 | HUB_AUTH_ROBOT_ID        | ID of the robot account to be used. Needs to exist on the central side (hub) at `https://auth.privateaim.dev/`.                       |
 | ROBOT_SECRET             | Associated secret of the robot account.                                                                                               |
+| NODE_PRIVATE_KEY         | Private key of the node in PEM format.                                                                                                |
 | NODE_MESSAGE_BROKER_HOST | Host to be used for the message broker. It will be accessible under `message-broker.<HOST>.nip.io`.                                   |
 | NAMESPACE                | Namespace to be used within the minikube cluster.                                                                                     |
 
