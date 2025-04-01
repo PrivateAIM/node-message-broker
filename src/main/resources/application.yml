@@ -12,7 +12,7 @@ spring:
       database: ${PERSISTENCE_DATABASE_NAME:messagebroker}
 logging:
   level:
-    org.springframework.web: ${LOG_LEVEL:debug}
+    org.springframework.web: ${LOG_LEVEL:info}
 
 app:
   auth:
