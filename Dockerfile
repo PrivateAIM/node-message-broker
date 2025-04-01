@@ -13,7 +13,8 @@ RUN addgroup --gid $USER_GID $USERNAME \
 
 USER $USER_UID
 
-HEALTHCHECK --interval=5s --start-period=10s CMD curl -s -f http://localhost:8080/actuator/health || exit 1
+ENV SERVER_PORT=8080
+HEALTHCHECK --interval=5s --start-period=10s CMD curl -s -f http://localhost:${SERVER_PORT}/actuator/health || exit 1
 
 COPY target/node-message-broker*.jar ./broker.jar
 
