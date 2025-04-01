@@ -22,7 +22,7 @@ app:
     auth:
       baseUrl: ${HUB_AUTH_BASE_URL}
       robotId: ${HUB_AUTH_ROBOT_ID}
-      robotSecret: ${HUB_AUTH_ROBOT_SECRET}
+      robotSecretFile: ${HUB_AUTH_ROBOT_SECRET_FILE}
     messenger:
       baseUrl: ${HUB_MESSENGER_BASE_URL}
   security:

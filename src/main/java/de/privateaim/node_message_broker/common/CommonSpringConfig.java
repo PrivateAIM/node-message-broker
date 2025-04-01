@@ -1,5 +1,6 @@
 package de.privateaim.node_message_broker.common;
 
+import de.privateaim.node_message_broker.ConfigurationUtil;
 import de.privateaim.node_message_broker.common.hub.HttpHubClient;
 import de.privateaim.node_message_broker.common.hub.HttpHubClientConfig;
 import de.privateaim.node_message_broker.common.hub.HubClient;
@@ -16,6 +17,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
+import java.io.IOException;
 import java.util.List;
 
 @Configuration
@@ -30,8 +32,20 @@ public class CommonSpringConfig {
     @Value("${app.hub.auth.robotId}")
     private String hubAuthRobotId;
 
-    @Value("${app.hub.auth.robotSecret}")
-    private String hubAuthRobotSecret;
+    @Value("${app.hub.auth.robotSecretFile}")
+    private String hubAuthRobotSecretFile;
+
+    @Qualifier("HUB_AUTH_ROBOT_SECRET")
+    @Bean
+    public String hubAuthRobotSecret() throws IOException {
+        return new String(ConfigurationUtil.readExternalFileContent(hubAuthRobotSecretFile));
+    }
+
+    @Qualifier("HUB_AUTH_ROBOT_ID")
+    @Bean
+    public String hubAuthRobotId() {
+        return hubAuthRobotId;
+    }
 
     @Qualifier("HUB_CORE_WEB_CLIENT")
     @Bean
@@ -84,7 +98,9 @@ public class CommonSpringConfig {
 
     @Qualifier("HUB_AUTH_RENEW_TOKEN")
     @Bean
-    ExchangeFilterFunction renewAuthTokenFilter(@Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient) {
+    ExchangeFilterFunction renewAuthTokenFilter(
+            @Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient,
+            @Qualifier("HUB_AUTH_ROBOT_SECRET") String hubAuthRobotSecret) {
         return new RenewAuthTokenFilter(hubAuthClient, hubAuthRobotId, hubAuthRobotSecret);
     }
 }

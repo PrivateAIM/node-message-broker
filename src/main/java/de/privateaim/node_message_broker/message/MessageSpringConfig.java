@@ -1,6 +1,7 @@
 package de.privateaim.node_message_broker.message;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.privateaim.node_message_broker.ConfigurationUtil;
 import de.privateaim.node_message_broker.common.hub.HubClient;
 import de.privateaim.node_message_broker.common.hub.auth.HubAuthClient;
 import de.privateaim.node_message_broker.message.crypto.HubMessageCryptoService;
@@ -29,7 +30,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
@@ -44,13 +44,6 @@ import java.util.function.Function;
 @Slf4j
 @Configuration
 class MessageSpringConfig {
-
-    @Value("${app.hub.auth.robotId}")
-    private String hubAuthRobotId;
-
-    @Value("${app.hub.auth.robotSecret}")
-    private String hubAuthRobotSecret;
-
     @Value("${app.hub.messenger.baseUrl}")
     private String hubMessengerBaseUrl;
 
@@ -62,12 +55,13 @@ class MessageSpringConfig {
 
     private static final String SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER = "send";
 
-
     @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET")
     @Bean(destroyMethod = "disconnect")
     public Socket underlyingMessengerSocket(
             @Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient,
-            @Qualifier("HUB_MESSAGE_RECEIVER") MessageReceiver messageReceiver) {
+            @Qualifier("HUB_MESSAGE_RECEIVER") MessageReceiver messageReceiver,
+            @Qualifier("HUB_AUTH_ROBOT_SECRET") String hubAuthRobotSecret,
+            @Qualifier("HUB_AUTH_ROBOT_ID") String hubAuthRobotId) {
         IO.Options options = IO.Options.builder()
                 .setPath(null)
                 .setAuth(new HashMap<>())
@@ -118,22 +112,20 @@ class MessageSpringConfig {
     @Qualifier("NODE_SECURITY_PRIVATE_ECDH_KEY")
     @Bean
     ECPrivateKey nodePrivateKey() throws IOException {
-        try (var fis = new FileInputStream(nodePrivateECDHKeyFile)) {
-            var nodePrivateECDHKeyContent = new String(fis.readAllBytes());
+        var nodePrivateECDHKeyContent = new String(ConfigurationUtil.readExternalFileContent(nodePrivateECDHKeyFile));
 
-            var decodedPrivateECDHKey = Base64.getDecoder().decode(nodePrivateECDHKeyContent);
-            var decodedPrivateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(decodedPrivateECDHKey));
+        var decodedPrivateECDHKey = Base64.getDecoder().decode(nodePrivateECDHKeyContent);
+        var decodedPrivateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(decodedPrivateECDHKey));
 
-            try {
+        try {
 
-                var pemParser = new PEMParser(decodedPrivateECDHKeyReader);
-                var privateKeyInfo = PrivateKeyInfo.getInstance(pemParser.readObject());
+            var pemParser = new PEMParser(decodedPrivateECDHKeyReader);
+            var privateKeyInfo = PrivateKeyInfo.getInstance(pemParser.readObject());
 
-                var keyConverter = new JcaPEMKeyConverter();
-                return (ECPrivateKey) keyConverter.getPrivateKey(privateKeyInfo);
-            } catch (IOException e) {
-                throw new RuntimeException("cannot read node's private ECDH key", e);
-            }
+            var keyConverter = new JcaPEMKeyConverter();
+            return (ECPrivateKey) keyConverter.getPrivateKey(privateKeyInfo);
+        } catch (IOException e) {
+            throw new RuntimeException("cannot read node's private ECDH key", e);
         }
     }
 
