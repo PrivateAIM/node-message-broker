@@ -33,7 +33,7 @@ Since the script builds a new Docker image on the fly before using it in the dep
 has been built using the following command in the root directory of the project:
 
 ```shell
-npm run build
+mvn -B -DskipTests package
 ```
 
 ## Usage
