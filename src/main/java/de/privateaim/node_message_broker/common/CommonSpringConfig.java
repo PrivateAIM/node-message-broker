@@ -18,6 +18,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
 @Configuration
@@ -38,7 +39,9 @@ public class CommonSpringConfig {
     @Qualifier("HUB_AUTH_ROBOT_SECRET")
     @Bean
     public String hubAuthRobotSecret() throws IOException {
-        return new String(ConfigurationUtil.readExternalFileContent(hubAuthRobotSecretFile));
+        var robotSecretFileContent = ConfigurationUtil.readExternalFileContent(hubAuthRobotSecretFile);
+        var decodedRobotSecret = Base64.getDecoder().decode(robotSecretFileContent);
+        return new String(decodedRobotSecret);
     }
 
     @Qualifier("HUB_AUTH_ROBOT_ID")
