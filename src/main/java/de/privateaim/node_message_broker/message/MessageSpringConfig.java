@@ -19,6 +19,7 @@ import io.socket.client.Manager;
 import io.socket.client.Socket;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -115,15 +116,22 @@ class MessageSpringConfig {
         var nodePrivateECDHKeyContent = new String(ConfigurationUtil.readExternalFileContent(nodePrivateECDHKeyFile));
 
         var decodedPrivateECDHKey = Base64.getDecoder().decode(nodePrivateECDHKeyContent);
-        var decodedPrivateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(decodedPrivateECDHKey));
 
         try {
+            try (var decodedPrivateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(decodedPrivateECDHKey))) {
+                var pemParser = new PEMParser(decodedPrivateECDHKeyReader);
+                var object = pemParser.readObject();
 
-            var pemParser = new PEMParser(decodedPrivateECDHKeyReader);
-            var privateKeyInfo = PrivateKeyInfo.getInstance(pemParser.readObject());
-
-            var keyConverter = new JcaPEMKeyConverter();
-            return (ECPrivateKey) keyConverter.getPrivateKey(privateKeyInfo);
+                var converter = new JcaPEMKeyConverter();
+                if (object instanceof PrivateKeyInfo) {
+                    var privateKeyInfo = PrivateKeyInfo.getInstance(object);
+                    return (ECPrivateKey) converter.getPrivateKey(privateKeyInfo);
+                } else if (object instanceof PEMKeyPair) {
+                    return (ECPrivateKey) converter.getPrivateKey(((PEMKeyPair) object).getPrivateKeyInfo());
+                } else {
+                    throw new RuntimeException("unexpected key type");
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException("cannot read node's private ECDH key", e);
         }
