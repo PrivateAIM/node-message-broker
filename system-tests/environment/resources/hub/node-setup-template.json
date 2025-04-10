@@ -1,0 +1,8 @@
+{
+    "name": "<NODE_NAME>",
+    "hidden": true,
+    "type": "default",
+    "robot_id": "<ROBOT_ID>",
+    "realm_id": "<REALM_ID>",
+    "public_key": "<PUBLIC_KEY>"
+}

@@ -21,7 +21,17 @@ target/
 
 k8s/tmp**
 
+# CERT SHOWCASE
 cert-showcase/config/secrets
 !cert-showcase/config/secrets/.gitkeep
 cert-showcase/config/**/*.pem
 cert-showcase/truststore-with-added-certs
+
+# SYSTEM TESTS
+system-tests/**/*.pem
+system-tests/environment/resources/hub/**/*.txt
+system-tests/environment/resources/secrets/**/*-b64.txt
+system-tests/environment/node/node-docker-compose.yml
+system-tests/environment/resources/secrets/
+!system-tests/environment/resources/secrets/setup-secrets.sh
+system-tests/tests/mb-test-cli

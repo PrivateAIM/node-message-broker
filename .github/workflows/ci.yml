@@ -45,12 +45,38 @@ jobs:
       - name: Run Tests
         run: mvn -B verify
 
-  # TODO: add system / e2e tests later on
+  system-tests:
+    name: Run System Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build Application
+        run: mvn -B -DskipTests package
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ^1.23.3
+
+      - name: Build System Test Application
+        run: go build -C ./system-tests/tests/
+
+      - name: Run Tests
+        run: ./system-tests/run.sh
 
   release:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     name: Release
-    needs: [ "unit-tests", "integration-tests" ]
+    needs: [ "unit-tests", "integration-tests", "system-tests" ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

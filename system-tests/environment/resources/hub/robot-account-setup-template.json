@@ -1,0 +1,6 @@
+{
+    "secret": "<ROBOT_SECRET>",
+    "name": "<ROBOT_NAME>",
+    "active": true,
+    "realm_id": "<REALM_ID>"
+}

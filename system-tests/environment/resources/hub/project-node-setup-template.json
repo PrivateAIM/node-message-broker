@@ -1,0 +1,7 @@
+{
+    "approval_status": "approved",
+    "project_id": "<PROJECT_ID>",
+    "project_realm_id": "<REALM_ID>",
+    "node_id": "<NODE_ID>",
+    "node_realm_id": "<REALM_ID>"
+}
