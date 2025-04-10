@@ -2,6 +2,11 @@
 
 BASE_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit 1 ; pwd -P )"
 
+teardown() {
+  echo "### Tearing down system test environment"
+  sh "$BASE_DIR"/environment/teardown.sh
+}
+
 echo "Setting up test environment"
 sh "$BASE_DIR"/environment/setup.sh
 
@@ -18,10 +23,10 @@ echo "Running system test for sending messages to dedicated recipients..."
 
 if [ $? -ne 0 ]; then
   echo "TEST FAILED"
+  teardown
   exit 1
 else
   echo "TEST SUCCEEDED"
 fi
 
-echo "### Tearing down system test environment"
-sh "$BASE_DIR"/environment/teardown.sh
+teardown
