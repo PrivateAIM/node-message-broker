@@ -16,6 +16,7 @@ type discoveryAPI interface {
 
 type messageAPI interface {
 	SendMessage(analysisId string, recipientId NodeId, message TestMessage) error
+	SendBroadcastMessage(analysisId string, message TestMessage) error
 }
 
 type intance interface {

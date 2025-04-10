@@ -4,7 +4,6 @@ import (
 	"fmt"
 	messagebroker "mb-test-cli/message-broker"
 	"mb-test-cli/util"
-	"sort"
 	"sync"
 	"time"
 
@@ -12,64 +11,64 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const numberOfMessagesToSend = 10
-
 var (
 	sendDedicatedMessagesTestCmd = &cobra.Command{
 		Use:   "send-dedicated-messages",
 		Short: "Runs a system test where messages are sent to dedicated recipients",
-		RunE:  run,
+		RunE:  sendDedicatedMessagesFunc,
 	}
 )
 
-type TestNodeClients struct {
+type dedicatedMessagesTestNodeClients struct {
 	SenderNodeClient   messagebroker.MessageBrokerClient
 	ReceiverNodeClient messagebroker.MessageBrokerClient
 }
 
-func run(_ *cobra.Command, _ []string) error {
+func sendDedicatedMessagesFunc(cmd *cobra.Command, _ []string) error {
+	globalFlags := getGlobalFlags(cmd)
+
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
 	log.Info("Running system test for sending messages to dedicated recipients")
-	log.Infof("Running test case with analysis ID: `%s`", analysisId)
-	log.Infof("Running test case with bootstrap nodes: `%s`", bootstrapNodes)
+	log.Infof("Running test case with analysis ID: `%s`", globalFlags.AnalysisId)
+	log.Infof("Running test case with bootstrap nodes: `%s`", globalFlags.BootstrapNodes)
 
-	if len(bootstrapNodes) < 2 {
-		return fmt.Errorf("at least two bootstrap nodes have to be specified")
+	if len(globalFlags.BootstrapNodes) < 2 {
+		return fmt.Errorf("at least 2 bootstrap nodes have to be specified")
 	}
 
-	authClient := messagebroker.NewMessageBrokerAuthClient(nodeAuthBaseUrl, nodeAuthClientId, nodeAuthClientSecret)
-	testNodeClients := getTestNodeClients(bootstrapNodes, authClient)
+	authClient := messagebroker.NewMessageBrokerAuthClient(globalFlags.NodeAuthBaseUrl, globalFlags.NodeAuthClientId, globalFlags.NodeAuthClientSecret)
+	testNodeClients := getDedicatedMessagesTestNodeClients(globalFlags.BootstrapNodes, authClient)
 
 	log.Infof("setting up subscription for result server at reciever node with base URL: `%s`", testNodeClients.ReceiverNodeClient.GetBaseUrl())
 	// TODO: remove hard coded value
-	subscriptionId, err := configureReceiverNodeSubscription(testNodeClients.ReceiverNodeClient, "http://host.docker.internal:8080/results")
+	subscriptionId, err := configureReceiverNodeSubscription(testNodeClients.ReceiverNodeClient, globalFlags.AnalysisId, "http://host.docker.internal:8080/results")
 	if err != nil {
 		return fmt.Errorf("could not configure receiver node")
 	}
 	defer func() {
 		log.Info("cleaning up receiver node subscription")
-		cleanUpReceiverNodeSubscription(testNodeClients.ReceiverNodeClient, analysisId, subscriptionId)
+		cleanUpReceiverNodeSubscription(testNodeClients.ReceiverNodeClient, globalFlags.AnalysisId, subscriptionId)
 	}()
 
 	log.Info("Starting result server for receiving messages via subscriptions")
-	resultCh := make(chan messagebroker.TestMessage, numberOfMessagesToSend)
+	resultCh := make(chan messagebroker.TestMessage, globalFlags.NumberOfMessagesToSend)
 	go func() {
 		if err := util.RunResultServer(resultCh); err != nil {
 			log.Fatalf("failed to start result server: %v", err)
 		}
 	}()
 
-	log.Infof("creating `%d` random messages to be sent", numberOfMessagesToSend)
-	randomMessages, err := util.CreateRandomMessages(numberOfMessagesToSend, 50)
+	log.Infof("creating `%d` random messages to be sent", globalFlags.NumberOfMessagesToSend)
+	randomMessages, err := util.CreateRandomMessages(int(globalFlags.NumberOfMessagesToSend), 50)
 	if err != nil {
 		return fmt.Errorf("failed to create random messages: %v", err)
 	}
 	log.Debugf("created the following messages: `%+q`", randomMessages)
 
 	log.Infof("discovering node ID for receiver node at `%s`", testNodeClients.ReceiverNodeClient.GetBaseUrl())
-	nodeId, err := testNodeClients.ReceiverNodeClient.DiscoverOwnNodeId(analysisId)
+	nodeId, err := testNodeClients.ReceiverNodeClient.DiscoverOwnNodeId(globalFlags.AnalysisId)
 	if err != nil {
 		log.Fatalf("could not discover node ID for receiver node: %v", err)
 	}
@@ -77,13 +76,13 @@ func run(_ *cobra.Command, _ []string) error {
 	log.Info("running send routine")
 	var wgSender sync.WaitGroup
 	wgSender.Add(1)
-	runMessageSendingRoutine(testNodeClients.SenderNodeClient, analysisId, nodeId, randomMessages, &wgSender)
+	runDedicatedMessageSendingRoutine(testNodeClients.SenderNodeClient, globalFlags.AnalysisId, nodeId, randomMessages, &wgSender)
 
 	log.Info("running receive routine")
 	receivedMessagesCh := make(chan []messagebroker.TestMessage, 1)
 	var wgReceiver sync.WaitGroup
 	wgReceiver.Add(1)
-	runMessageReceiveRoutine(resultCh, receivedMessagesCh, &wgReceiver)
+	runDedicatedMessageReceiveRoutine(resultCh, receivedMessagesCh, &wgReceiver)
 
 	log.Info("waiting for sender to finish sending messages")
 	wgSender.Wait()
@@ -102,8 +101,8 @@ func run(_ *cobra.Command, _ []string) error {
 	}
 
 	// sorting since messages may arrive in different order depending on the workload of the message broker
-	sortMessages(randomMessages)
-	sortMessages(receivedMessages)
+	SortMessages(randomMessages)
+	SortMessages(receivedMessages)
 
 	log.Debugf("sent messages (sorted): %+q", randomMessages)
 	log.Debugf("received messages (sorted): %+q", receivedMessages)
@@ -124,28 +123,14 @@ func run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func getTestNodeClients(bootstrapNodes []string, authClient messagebroker.MessageBrokerAuthClient) TestNodeClients {
-	return TestNodeClients{
+func getDedicatedMessagesTestNodeClients(bootstrapNodes []string, authClient messagebroker.MessageBrokerAuthClient) dedicatedMessagesTestNodeClients {
+	return dedicatedMessagesTestNodeClients{
 		SenderNodeClient:   messagebroker.NewMessageBrokerClient(bootstrapNodes[0], authClient.AcquireAccessToken),
 		ReceiverNodeClient: messagebroker.NewMessageBrokerClient(bootstrapNodes[1], authClient.AcquireAccessToken),
 	}
 }
 
-func configureReceiverNodeSubscription(receiverNodeClient messagebroker.MessageBrokerClient, webhookUrl string) (messagebroker.SubscriptionId, error) {
-	subscription, err := receiverNodeClient.CreateSubscription(analysisId, webhookUrl)
-	if err != nil {
-		return "", fmt.Errorf("could not create subscription for receiver node: %v", err)
-	}
-	return subscription, nil
-}
-
-func cleanUpReceiverNodeSubscription(receiverNodeClient messagebroker.MessageBrokerClient, analysisId string, subscriptionId messagebroker.SubscriptionId) {
-	if err := receiverNodeClient.DeleteSubscription(analysisId, subscriptionId); err != nil {
-		log.Fatalf("could not delete subscription with id `%s` for receiver node at `%s`: %v", subscriptionId, receiverNodeClient.GetBaseUrl(), err)
-	}
-}
-
-func runMessageSendingRoutine(senderNodeClient messagebroker.MessageBrokerClient, analysisId string, targetNodeId messagebroker.NodeId, messages []messagebroker.TestMessage, wg *sync.WaitGroup) {
+func runDedicatedMessageSendingRoutine(senderNodeClient messagebroker.MessageBrokerClient, analysisId string, targetNodeId messagebroker.NodeId, messages []messagebroker.TestMessage, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()
 
@@ -158,7 +143,7 @@ func runMessageSendingRoutine(senderNodeClient messagebroker.MessageBrokerClient
 	}()
 }
 
-func runMessageReceiveRoutine(resultCh <-chan messagebroker.TestMessage, receivedMessages chan<- []messagebroker.TestMessage, wg *sync.WaitGroup) {
+func runDedicatedMessageReceiveRoutine(resultCh <-chan messagebroker.TestMessage, receivedMessages chan<- []messagebroker.TestMessage, wg *sync.WaitGroup) {
 	go func() {
 		var results []messagebroker.TestMessage
 		defer wg.Done()
@@ -175,10 +160,4 @@ func runMessageReceiveRoutine(resultCh <-chan messagebroker.TestMessage, receive
 			}
 		}
 	}()
-}
-
-func sortMessages(messages []messagebroker.TestMessage) {
-	sort.Slice(messages, func(i, j int) bool {
-		return messages[i].Id < messages[j].Id
-	})
 }

@@ -27,6 +27,10 @@ type nodeSendMessageRequest struct {
 	Message    TestMessage `json:"message"`
 }
 
+type nodeSendBroadcastMessageRequest struct {
+	Message TestMessage `json:"message"`
+}
+
 type keycloakTokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
