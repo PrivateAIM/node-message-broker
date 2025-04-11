@@ -36,9 +36,13 @@ variables to adjust the application to your needs:
 | HUB_BASE_URL                        | Base URL to reach the Hub's auth component.                                                    |                 |
 | HUB_MESSENGER_BASE_URL              | Base URL to reach the Hub's messenger component.                                               |                 |
 | LOG_LEVEL                           | Log level being used. Can be either of `trace`, `debug`, `info`, `warn` or `error`.            | `info`          |
+| MANAGEMENT_SERVER_PORT              | Port being used by the management server (providing health check endpoints etc.)               | `8090`          |
 | PERSISTENCE_DATABASE_NAME           | Database name to use when connecting to a MongoDB instance.                                    | `messagebroker` |
 | PERSISTENCE_HOSTNAME                | Hostname to use to connect to a MongoDB instance.                                              | `localhost`     |
 | PERSISTENCE_PORT                    | Port to use to connect to a MongoDB instance.                                                  | `17017`         |
 | SECURITY_NODE_PRIVATE_ECDH_KEY_FILE | Path to the file containing the node's private EC key in PEM format, Base64 encoded.           |                 |
 | SERVER_PORT                         | Port being used by the Web server.                                                             | `8080`          |
 
+## Endpoint Documentation
+
+OpenAPI compliant endpoint documentation can be accessed at [http://localhost:<MANAGEMENT_SERVER_PORT>/actuator/swagger-ui](http://localhost:<MANAGEMENT_SERVER_PORT>/actuator/swagger-ui).
