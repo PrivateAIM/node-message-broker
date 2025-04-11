@@ -1,0 +1,41 @@
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-stacktrace: never
+spring:
+  application:
+    name: node-message-broker
+  data:
+    mongodb:
+      host: ${PERSISTENCE_HOSTNAME:localhost}
+      port: ${PERSISTENCE_PORT:17017}
+      database: ${PERSISTENCE_DATABASE_NAME:messagebroker}
+springdoc:
+  show-actuator: true
+  swagger-ui.path: "/swagger-ui.html"
+  use-management-port: true
+management:
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:8090}
+  endpoints:
+    web:
+      exposure:
+        # This property enables the openapi and swagger-ui endpoints to be exposed beneath the actuator base path.
+        include: "health,openapi,swagger-ui"
+logging:
+  level:
+    org.springframework.web: ${LOG_LEVEL:info}
+
+app:
+  auth:
+    jwksUrl: ${AUTH_JWKS_URL}
+  hub:
+    baseUrl: ${HUB_BASE_URL}
+    auth:
+      baseUrl: ${HUB_AUTH_BASE_URL}
+      robotId: ${HUB_AUTH_ROBOT_ID}
+      robotSecretFile: ${HUB_AUTH_ROBOT_SECRET_FILE}
+    messenger:
+      baseUrl: ${HUB_MESSENGER_BASE_URL}
+  security:
+    nodePrivateECDHKeyFile: ${SECURITY_NODE_PRIVATE_ECDH_KEY_FILE}

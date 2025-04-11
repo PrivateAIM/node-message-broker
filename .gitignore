@@ -1,18 +1,37 @@
-.DS_Store
-bin
-dist
-doc
-node_modules
-.vscode
-.nyc_output
-coverage
-*.log
-npm-debug.log*
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
 .idea
-reports
-db.sqlite
-.env
-cache
-.swc
+*.iws
+*.iml
+*.ipr
 
 k8s/tmp**
+
+# CERT SHOWCASE
+cert-showcase/config/secrets
+!cert-showcase/config/secrets/.gitkeep
+cert-showcase/config/**/*.pem
+cert-showcase/truststore-with-added-certs
+
+# SYSTEM TESTS
+system-tests/**/*.pem
+system-tests/environment/resources/hub/**/*.txt
+system-tests/environment/resources/secrets/**/*-b64.txt
+system-tests/environment/node/node-docker-compose.yml
+system-tests/environment/resources/secrets/
+!system-tests/environment/resources/secrets/setup-secrets.sh
+system-tests/tests/mb-test-cli

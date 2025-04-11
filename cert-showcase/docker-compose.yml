@@ -1,0 +1,106 @@
+services:
+  haproxy:
+    image: haproxy:3.1.5-alpine@sha256:5090db844ab40e648ad485eefc7cf469b4aee3c9fe6c4c65cbb19d99d13a0952
+    restart: "always"
+    depends_on:
+      response_server:
+        condition: service_healthy
+    ports:
+      - "443:443"
+      - "9999:9999"
+    volumes:
+      - ./config/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./config/haproxy/self-signed.pem:/certs/self-signed.pem:ro
+      - ./config/haproxy/healthcheck.sh:/tmp/healthcheck.sh:ro
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=0
+    healthcheck:
+      test: [ "CMD", "/tmp/healthcheck.sh" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      default:
+        aliases:
+          - "core.privateaim.internal"
+          - "storage.privateaim.internal"
+          - "auth.privateaim.internal"
+
+  response_server:
+    build: ./reply-server
+    ports:
+      - "9000:9000"
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:9000" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  node:
+    build:
+      context: ../
+    depends_on:
+      - node-db
+    ports:
+      - "18088:18088"
+    restart: always
+    secrets:
+      - priv-key-node.pem
+      - robot-secret-node.txt
+    # The following does NOT work in temurin since they are using a 2-step process which
+    # itself alters system resources and thus requires root permission.
+    #volumes:
+    #  - source: ./config/self-signed-cert.pem
+    #    target: /certificates/self-signed-cert.crt
+    #    read_only: true
+    #    type: bind
+    volumes:
+      - source: ./truststore-with-added-certs
+        target: /opt/java/openjdk/lib/security/cacerts
+        read_only: true
+        type: bind
+    environment:
+      AUTH_JWKS_URL: "http://localhost:18080/realms/privateaim/protocol/openid-connect/certs"
+      HUB_AUTH_BASE_URL: "https://auth.privateaim.internal"
+      HUB_AUTH_ROBOT_ID: "ce84b6a8-df3d-451b-8411-4fb57570c47a"
+      HUB_AUTH_ROBOT_SECRET_FILE: /run/secrets/robot-secret-node.txt
+      HUB_BASE_URL: "https://core.privateaim.internal"
+      HUB_MESSENGER_BASE_URL: "https://messenger.privateaim.internal"
+      SECURITY_NODE_PRIVATE_ECDH_KEY_FILE: /run/secrets/priv-key-node.pem
+      SERVER_PORT: 18088
+      PERSISTENCE_HOSTNAME: "node-db"
+      PERSISTENCE_PORT: 27017
+      PERSISTENCE_DATABASE_NAME: "node-message-broker"
+      # See comment up top for a reason why this is not working!
+      #USE_SYSTEM_CA_CERTS: 1 # this is specific to the used eclipse temurin image!
+
+  node-db:
+    image: mongo:7.0.5@sha256:fcde2d71bf00b592c9cabab1d7d01defde37d69b3d788c53c3bc7431b6b15de8
+    ports:
+      - "17017:27017"
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: "node-message-broker"
+      TZ: "Europe/Berlin"
+
+  keycloak:
+    image: keycloak/keycloak:24.0.4@sha256:ff02c932f0249c58f32b8ff1b188a48cc90809779a3a05931ab67f5672400ad0
+    ports:
+      - "18080:8080"
+      - "10433:8433"
+    command:
+      - start-dev
+      - --health-enabled
+      - "true"
+      - --import-realm
+    environment:
+      KEYCLOAK_ADMIN: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "admin"
+    volumes:
+      - ./config/keycloak/private-aim-realm.json:/opt/keycloak/data/import/default-path-realm.json:ro
+
+secrets:
+  priv-key-node.pem:
+    file: ./config/secrets/priv-key-node.pem
+  robot-secret-node.txt:
+    file: ./config/secrets/robot-secret-node.txt
