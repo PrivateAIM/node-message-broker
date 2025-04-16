@@ -11,16 +11,16 @@ services:
       - "18088:18088"
     restart: always
     secrets:
-      - priv-key-node-a-b64.pem
-      - robot-secret-node-a-b64.txt
+      - priv-key-node-a.pem
+      - robot-secret-node-a.txt
     environment:
       AUTH_JWKS_URL: "http://keycloak:8080/realms/privateaim/protocol/openid-connect/certs"
       HUB_AUTH_BASE_URL: "http://172.99.20.11:3000"
       HUB_AUTH_ROBOT_ID: <ROBOT_ID_NODE_A>
-      HUB_AUTH_ROBOT_SECRET_FILE: /run/secrets/robot-secret-node-a-b64.txt
+      HUB_AUTH_ROBOT_SECRET_FILE: /run/secrets/robot-secret-node-a.txt
       HUB_BASE_URL: "http://172.99.20.10:3000"
       HUB_MESSENGER_BASE_URL: "http://172.99.20.12:3000"
-      SECURITY_NODE_PRIVATE_ECDH_KEY_FILE: /run/secrets/priv-key-node-a-b64.pem
+      SECURITY_NODE_PRIVATE_ECDH_KEY_FILE: /run/secrets/priv-key-node-a.pem
       SERVER_PORT: 18088
       PERSISTENCE_HOSTNAME: "node-a-db"
       PERSISTENCE_PORT: 27017
@@ -45,16 +45,16 @@ services:
       - "18089:18089"
     restart: always
     secrets:
-      - priv-key-node-b-b64.pem
-      - robot-secret-node-b-b64.txt
+      - priv-key-node-b.pem
+      - robot-secret-node-b.txt
     environment:
       AUTH_JWKS_URL: "http://keycloak:8080/realms/privateaim/protocol/openid-connect/certs"
       HUB_AUTH_BASE_URL: "http://172.99.20.11:3000"
       HUB_AUTH_ROBOT_ID: <ROBOT_ID_NODE_B>
-      HUB_AUTH_ROBOT_SECRET_FILE: /run/secrets/robot-secret-node-b-b64.txt
+      HUB_AUTH_ROBOT_SECRET_FILE: /run/secrets/robot-secret-node-b.txt
       HUB_BASE_URL: "http://172.99.20.10:3000"
       HUB_MESSENGER_BASE_URL: "http://172.99.20.12:3000"
-      SECURITY_NODE_PRIVATE_ECDH_KEY_FILE: /run/secrets/priv-key-node-b-b64.pem
+      SECURITY_NODE_PRIVATE_ECDH_KEY_FILE: /run/secrets/priv-key-node-b.pem
       SERVER_PORT: 18089
       PERSISTENCE_HOSTNAME: "node-b-db"
       PERSISTENCE_PORT: 27017
@@ -79,16 +79,16 @@ services:
       - "18090:18090"
     restart: always
     secrets:
-      - priv-key-node-c-b64.pem
-      - robot-secret-node-c-b64.txt
+      - priv-key-node-c.pem
+      - robot-secret-node-c.txt
     environment:
       AUTH_JWKS_URL: "http://keycloak:8080/realms/privateaim/protocol/openid-connect/certs"
       HUB_AUTH_BASE_URL: "http://172.99.20.11:3000"
       HUB_AUTH_ROBOT_ID: <ROBOT_ID_NODE_C>
-      HUB_AUTH_ROBOT_SECRET_FILE: /run/secrets/robot-secret-node-c-b64.txt
+      HUB_AUTH_ROBOT_SECRET_FILE: /run/secrets/robot-secret-node-c.txt
       HUB_BASE_URL: "http://172.99.20.10:3000"
       HUB_MESSENGER_BASE_URL: "http://172.99.20.12:3000"
-      SECURITY_NODE_PRIVATE_ECDH_KEY_FILE: /run/secrets/priv-key-node-c-b64.pem
+      SECURITY_NODE_PRIVATE_ECDH_KEY_FILE: /run/secrets/priv-key-node-c.pem
       SERVER_PORT: 18090
       PERSISTENCE_HOSTNAME: "node-c-db"
       PERSISTENCE_PORT: 27017
@@ -184,15 +184,15 @@ networks:
     external: true
 
 secrets:
-  priv-key-node-a-b64.pem:
-    file: ../resources/secrets/priv-key-node-a-b64.pem
-  robot-secret-node-a-b64.txt:
-    file: ../resources/secrets/robot-secret-node-a-b64.txt
-  priv-key-node-b-b64.pem:
-    file: ../resources/secrets/priv-key-node-b-b64.pem
-  robot-secret-node-b-b64.txt:
-    file: ../resources/secrets/robot-secret-node-b-b64.txt
-  priv-key-node-c-b64.pem:
-    file: ../resources/secrets/priv-key-node-c-b64.pem
-  robot-secret-node-c-b64.txt:
-    file: ../resources/secrets/robot-secret-node-c-b64.txt
+  priv-key-node-a.pem:
+    file: ../resources/secrets/priv-key-node-a.pem
+  robot-secret-node-a.txt:
+    file: ../resources/secrets/robot-secret-node-a.txt
+  priv-key-node-b.pem:
+    file: ../resources/secrets/priv-key-node-b.pem
+  robot-secret-node-b.txt:
+    file: ../resources/secrets/robot-secret-node-b.txt
+  priv-key-node-c.pem:
+    file: ../resources/secrets/priv-key-node-c.pem
+  robot-secret-node-c.txt:
+    file: ../resources/secrets/robot-secret-node-c.txt
