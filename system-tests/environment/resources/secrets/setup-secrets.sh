@@ -13,19 +13,8 @@ create_ec_key_pair() {
   openssl ec -in "$BASE_DIR"/priv-key-"$1".pem -pubout -out "$BASE_DIR"/pub-key-"$1".pem
 
   truncate -s -1 "$BASE_DIR"/priv-key-"$1".pem
-  cat "$BASE_DIR"/priv-key-"$1".pem | base64 -w0 > "$BASE_DIR"/priv-key-"$1"-b64.pem
   # We can do this since it's a test environment...
-  chmod 644 "$BASE_DIR"/priv-key-"$1"-b64.pem
-}
-
-#
-# Base64 encodes a robot secret.
-#
-# Args (positional)
-#   1 - suffix (used for input/output files)
-#
-base64_encode_robot_secret() {
-  cat "$BASE_DIR"/robot-secret-"$1".txt | base64 -w0 > "$BASE_DIR"/robot-secret-"$1"-b64.txt
+  chmod 644 "$BASE_DIR"/priv-key-"$1".pem
 }
 
 #
@@ -46,7 +35,3 @@ create_ec_key_pair node-c
 create_robot_secret node-a
 create_robot_secret node-b
 create_robot_secret node-c
-
-base64_encode_robot_secret node-a
-base64_encode_robot_secret node-b
-base64_encode_robot_secret node-c

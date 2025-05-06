@@ -113,13 +113,11 @@ class MessageSpringConfig {
     @Qualifier("NODE_SECURITY_PRIVATE_ECDH_KEY")
     @Bean
     ECPrivateKey nodePrivateKey() throws IOException {
-        var nodePrivateECDHKeyContent = new String(ConfigurationUtil.readExternalFileContent(nodePrivateECDHKeyFile));
-
-        var decodedPrivateECDHKey = Base64.getDecoder().decode(nodePrivateECDHKeyContent);
+        var nodePrivateECDHKeyContent = ConfigurationUtil.readExternalFileContent(nodePrivateECDHKeyFile);
 
         try {
-            try (var decodedPrivateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(decodedPrivateECDHKey))) {
-                var pemParser = new PEMParser(decodedPrivateECDHKeyReader);
+            try (var privateECDHKeyReader = new InputStreamReader(new ByteArrayInputStream(nodePrivateECDHKeyContent))) {
+                var pemParser = new PEMParser(privateECDHKeyReader);
                 var object = pemParser.readObject();
 
                 var converter = new JcaPEMKeyConverter();
