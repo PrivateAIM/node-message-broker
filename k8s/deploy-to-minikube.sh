@@ -59,12 +59,12 @@ sed -i  -e "s#<AUTH_JWKS_URL>#${AUTH_JWKS_URL}#" \
 checkSuccessOrFailWithCode $? 4
 
 echo -n "Preparing hub auth secret..."
-sed -i  -e "s#<ROBOT_SECRET>#$(echo -n ${ROBOT_SECRET} | base64)#" \
+sed -i  -e "s#<ROBOT_SECRET>#${ROBOT_SECRET}#" \
         "${WORK_DIR}/hub-auth-secret.yml"
 checkSuccessOrFailWithCode $? 5
 
 echo -n "Preparing node private key..."
-sed -i -e "s#<NODE_PRIVATE_KEY>#$(echo -n ${NODE_PRIVATE_KEY} | base64)#" \
+sed -i -e "s#<NODE_PRIVATE_KEY>#${NODE_PRIVATE_KEY}#" \
         "${WORK_DIR}/node-secret.yml"
 checkSuccessOrFailWithCode $? 6
 
