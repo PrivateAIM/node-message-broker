@@ -5,15 +5,17 @@ service.
 
 ## Process of adding additional certificates
 
-Since the message broker service is based on an [Eclipse Temurin](https://hub.docker.com/_/eclipse-temurin) Java image
-it's inevitable that a Java truststore needs to be used. However, this cannot be altered without root permissions. Thus,
-altering the file within a non-root context is not possible and requires the following workflow instead:
+The message broker is based on an [Eclipse Temurin](https://hub.docker.com/_/eclipse-temurin) Java image and internally
+using the [Spring framework](https://spring.io/projects/spring-framework). Both of these have their own variants of
+providing additional certificates. Temurin allows for mounting a custom trust store. However, this requires the use of
+Java's [keytool](https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html) which is cumbersome during
+deployment. Spring itself offers providing certificate bundles. However, this approach does not make use of existing
+certificates and thus is also not applicable.
 
-1. Copy the bundled truststore from the used base Docker image to your local system
-2. Alter the copied truststore using a Docker container with `keytool` being installed to import additional certificates
-   being mounted
-3. Mount the altered truststore to the message broker container to `/opt/java/openjdk/lib/security/cacerts` (default
-   truststore)
+Instead, the message broker allows to provide additional certificates by setting the environment variable
+`SECURITY_ADDITIONAL_TRUSTED_CERTS_FILE` to point the application to a certificate bundle file. This certificate bundle
+is loaded during application startup and added to already existing trust material. This composed trust material is then
+used in client implementations for outgoing connections.
 
 ## Test setup
 

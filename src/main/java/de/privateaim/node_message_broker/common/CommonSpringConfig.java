@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -50,7 +51,8 @@ public class CommonSpringConfig {
     @Qualifier("HUB_CORE_WEB_CLIENT")
     @Bean
     public WebClient alwaysReAuthenticatedWebClient(
-            @Qualifier("HUB_AUTH_RENEW_TOKEN") ExchangeFilterFunction renewTokenFilter) {
+            @Qualifier("HUB_AUTH_RENEW_TOKEN") ExchangeFilterFunction renewTokenFilter,
+            @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR") ReactorClientHttpConnector baseSslHttpClientConnector) {
         // We can't use Spring's default security mechanisms out-of-the-box here since HUB uses a non-standard grant
         // type which is not supported. There's a way by using a custom grant type accompanied by a client manager.
         // However, this endeavour is not pursued for the sake of simplicity.
@@ -64,6 +66,7 @@ public class CommonSpringConfig {
                 .uriBuilderFactory(factory)
                 .defaultHeaders(httpHeaders -> httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON)))
                 .filter(renewTokenFilter)
+                .clientConnector(baseSslHttpClientConnector)
                 .build();
     }
 
@@ -79,10 +82,12 @@ public class CommonSpringConfig {
 
     @Qualifier("HUB_AUTH_WEB_CLIENT")
     @Bean
-    WebClient hubAuthWebClient() {
+    WebClient hubAuthWebClient(
+            @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR") ReactorClientHttpConnector baseSslHttpClientConnector) {
         return WebClient.builder()
                 .baseUrl(hubAuthBaseUrl)
                 .defaultHeaders(httpHeaders -> httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON)))
+                .clientConnector(baseSslHttpClientConnector)
                 .build();
     }
 
