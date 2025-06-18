@@ -27,22 +27,22 @@ releases. For the time being use your own instance or a public one._
 This application requires [Maven](https://maven.apache.org) and at least Java 21 to run. Use the following environment
 variables to adjust the application to your needs:
 
-| EnvVar                                 | Description                                                                                    | Default         |
-|----------------------------------------|------------------------------------------------------------------------------------------------|-----------------|
-| AUTH_JWKS_URL                          | URL to retrieve a JWKS for verifying JWTs.                                                     |                 |
-| HUB_AUTH_BASE_URL                      | Base URL to reach the Hub's core component.                                                    |                 |
-| HUB_AUTH_ROBOT_ID                      | Robot ID associated with the node.                                                             |                 |
-| HUB_AUTH_ROBOT_SECRET_FILE             | Path to the file containing the secret of the node's associated robot account, Base64 encoded. |                 |
-| HUB_BASE_URL                           | Base URL to reach the Hub's auth component.                                                    |                 |
-| HUB_MESSENGER_BASE_URL                 | Base URL to reach the Hub's messenger component.                                               |                 |
-| LOG_LEVEL                              | Log level being used. Can be either of `trace`, `debug`, `info`, `warn` or `error`.            | `info`          |
-| MANAGEMENT_SERVER_PORT                 | Port being used by the management server (providing health check endpoints etc.)               | `8090`          |
-| PERSISTENCE_DATABASE_NAME              | Database name to use when connecting to a MongoDB instance.                                    | `messagebroker` |
-| PERSISTENCE_HOSTNAME                   | Hostname to use to connect to a MongoDB instance.                                              | `localhost`     |
-| PERSISTENCE_PORT                       | Port to use to connect to a MongoDB instance.                                                  | `17017`         |
-| SECURITY_ADDITIONAL_TRUSTED_CERTS_FILE | Path to a certificate bundle containing additional certificates to be loaded during startup.   |                 |
-| SECURITY_NODE_PRIVATE_ECDH_KEY_FILE    | Path to the file containing the node's private EC key in PEM format, Base64 encoded.           |                 |
-| SERVER_PORT                            | Port being used by the Web server.                                                             | `8080`          |
+| EnvVar                                 | Description                                                                                   | Default         |
+|----------------------------------------|-----------------------------------------------------------------------------------------------|-----------------|
+| AUTH_JWKS_URL                          | URL to retrieve a JWKS for verifying JWTs.                                                    |                 |
+| HUB_AUTH_BASE_URL                      | Base URL to reach the Hub's core component.                                                   |                 |
+| HUB_AUTH_ROBOT_ID                      | Robot ID associated with the node.                                                            |                 |
+| HUB_AUTH_ROBOT_SECRET_FILE             | Path to the file containing the secret of the node's associated robot account, as plain text. |                 |
+| HUB_BASE_URL                           | Base URL to reach the Hub's auth component.                                                   |                 |
+| HUB_MESSENGER_BASE_URL                 | Base URL to reach the Hub's messenger component.                                              |                 |
+| LOG_LEVEL                              | Log level being used. Can be either of `trace`, `debug`, `info`, `warn` or `error`.           | `info`          |
+| MANAGEMENT_SERVER_PORT                 | Port being used by the management server (providing health check endpoints etc.)              | `8090`          |
+| PERSISTENCE_DATABASE_NAME              | Database name to use when connecting to a MongoDB instance.                                   | `messagebroker` |
+| PERSISTENCE_HOSTNAME                   | Hostname to use to connect to a MongoDB instance.                                             | `localhost`     |
+| PERSISTENCE_PORT                       | Port to use to connect to a MongoDB instance.                                                 | `17017`         |
+| SECURITY_ADDITIONAL_TRUSTED_CERTS_FILE | Path to a certificate bundle containing additional certificates to be loaded during startup.  |                 |
+| SECURITY_NODE_PRIVATE_ECDH_KEY_FILE    | Path to the file containing the node's private EC key in PEM format, as plain text.           |                 |
+| SERVER_PORT                            | Port being used by the Web server.                                                            | `8080`          |
 
 ## Endpoint Documentation
 
