@@ -55,8 +55,8 @@ services:
     #    read_only: true
     #    type: bind
     volumes:
-      - source: ./truststore-with-added-certs
-        target: /opt/java/openjdk/lib/security/cacerts
+      - source: ./config/self-signed-cert.pem
+        target: /opt/certs/self-signed-cert.pem
         read_only: true
         type: bind
     environment:
@@ -71,6 +71,7 @@ services:
       PERSISTENCE_HOSTNAME: "node-db"
       PERSISTENCE_PORT: 27017
       PERSISTENCE_DATABASE_NAME: "node-message-broker"
+      SECURITY_ADDITIONAL_TRUSTED_CERTS_FILE: "/opt/certs/self-signed-cert.pem"
       # See comment up top for a reason why this is not working!
       #USE_SYSTEM_CA_CERTS: 1 # this is specific to the used eclipse temurin image!
 

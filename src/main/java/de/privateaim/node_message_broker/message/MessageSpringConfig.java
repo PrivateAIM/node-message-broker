@@ -18,6 +18,7 @@ import io.socket.client.IO;
 import io.socket.client.Manager;
 import io.socket.client.Socket;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
@@ -27,9 +28,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -40,6 +45,7 @@ import java.security.interfaces.ECPrivateKey;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @Slf4j
@@ -56,17 +62,33 @@ class MessageSpringConfig {
 
     private static final String SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER = "send";
 
+
+    @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET_SECURE_CLIENT")
+    @Bean
+    OkHttpClient socketBaseClient(@Qualifier("COMMON_JAVA_SSL_CONTEXT") SSLContext sslCtx,
+                                  @Qualifier("COMMON_TRUST_MANAGER_FACTORY") TrustManagerFactory tmf) {
+        return new OkHttpClient.Builder()
+                .sslSocketFactory(sslCtx.getSocketFactory(), (X509TrustManager) tmf.getTrustManagers()[0])
+                .readTimeout(1, TimeUnit.MINUTES)
+                .build();
+    }
+
     @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET")
     @Bean(destroyMethod = "disconnect")
     public Socket underlyingMessengerSocket(
             @Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient,
             @Qualifier("HUB_MESSAGE_RECEIVER") MessageReceiver messageReceiver,
             @Qualifier("HUB_AUTH_ROBOT_SECRET") String hubAuthRobotSecret,
-            @Qualifier("HUB_AUTH_ROBOT_ID") String hubAuthRobotId) {
+            @Qualifier("HUB_AUTH_ROBOT_ID") String hubAuthRobotId,
+            @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET_SECURE_CLIENT") OkHttpClient secureBaseClient) {
         IO.Options options = IO.Options.builder()
                 .setPath(null)
                 .setAuth(new HashMap<>())
                 .build();
+
+        // this is used for SSL backed connections that need to trust additional certificates
+        options.callFactory = secureBaseClient;
+        options.webSocketFactory = secureBaseClient;
 
         final Socket socket = IO.socket(URI.create(hubMessengerBaseUrl), options);
 
@@ -205,9 +227,11 @@ class MessageSpringConfig {
 
     @Qualifier("HUB_MESSAGE_RECEIVE_FORWARD_WEB_CLIENT")
     @Bean
-    public WebClient messageForwardWebClient() {
+    public WebClient messageForwardWebClient(
+            @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR") ReactorClientHttpConnector baseSslHttpClientConnector) {
         return WebClient.builder()
                 .defaultHeaders(httpHeaders -> httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON)))
+                .clientConnector(baseSslHttpClientConnector)
                 .build();
     }
 

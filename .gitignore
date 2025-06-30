@@ -25,7 +25,6 @@ k8s/tmp**
 cert-showcase/config/secrets
 !cert-showcase/config/secrets/.gitkeep
 cert-showcase/config/**/*.pem
-cert-showcase/truststore-with-added-certs
 
 # SYSTEM TESTS
 system-tests/**/*.pem

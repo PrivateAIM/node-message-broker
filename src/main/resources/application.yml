@@ -39,3 +39,4 @@ app:
       baseUrl: ${HUB_MESSENGER_BASE_URL}
   security:
     nodePrivateECDHKeyFile: ${SECURITY_NODE_PRIVATE_ECDH_KEY_FILE}
+    additionalTrustedCertsFile: ${SECURITY_ADDITIONAL_TRUSTED_CERTS_FILE:}
