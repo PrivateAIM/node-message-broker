@@ -1,8 +1,8 @@
 package de.privateaim.node_message_broker.discovery;
 
 import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.http.HttpStatus;
+import de.privateaim.node_message_broker.common.HttpRetryConfig;
 import de.privateaim.node_message_broker.common.hub.HttpHubClient;
-import de.privateaim.node_message_broker.common.hub.HttpHubClientConfig;
 import de.privateaim.node_message_broker.common.hub.api.AnalysisNode;
 import de.privateaim.node_message_broker.common.hub.api.HubResponseContainer;
 import de.privateaim.node_message_broker.common.hub.api.Node;
@@ -39,10 +39,7 @@ public final class DiscoveryServiceIT {
     void setUp() {
         mockWebServer = new MockWebServer();
         var noAuthWebClient = WebClient.create(mockWebServer.url("/").toString());
-        var hubClientCfg = new HttpHubClientConfig.Builder()
-                .withMaxRetries(0)
-                .withRetryDelayMs(0)
-                .build();
+        var hubClientCfg = new HttpRetryConfig(0, 0);
         var hubClient = Mockito.spy(new HttpHubClient(noAuthWebClient, hubClientCfg));
         discoveryService = new DiscoveryService(hubClient, SELF_ROBOT_ID);
     }

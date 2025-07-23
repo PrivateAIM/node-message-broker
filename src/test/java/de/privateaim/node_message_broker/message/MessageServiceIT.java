@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.http.HttpStatus;
+import de.privateaim.node_message_broker.common.HttpRetryConfig;
 import de.privateaim.node_message_broker.common.hub.HttpHubClient;
-import de.privateaim.node_message_broker.common.hub.HttpHubClientConfig;
 import de.privateaim.node_message_broker.common.hub.api.AnalysisNode;
 import de.privateaim.node_message_broker.common.hub.api.HubResponseContainer;
 import de.privateaim.node_message_broker.common.hub.api.Node;
@@ -57,10 +57,7 @@ public final class MessageServiceIT {
         mockSocket = Mockito.mock(Socket.class);
         spyMessageEmitter = Mockito.spy(new HubMessageEmitter(mockSocket));
         var webClient = WebClient.create(mockWebServer.url("/").toString());
-        var httpHubClient = new HttpHubClient(webClient, new HttpHubClientConfig.Builder()
-                .withMaxRetries(0)
-                .withRetryDelayMs(0)
-                .build());
+        var httpHubClient = new HttpHubClient(webClient, new HttpRetryConfig(0, 0));
 
         messageService = new MessageService(spyMessageEmitter, httpHubClient, SELF_ROBOT_ID);
         emitMessageCaptor = ArgumentCaptor.forClass(EmitMessage.class);

@@ -1,12 +1,12 @@
-package de.privateaim.node_message_broker.common.hub;
+package de.privateaim.node_message_broker.common;
 
 /**
- * Additional behavioural configuration for the {@link HttpHubClient}.
+ * Configuration options for retrying failed HTTP requests.
  *
  * @param maxRetries   number of maximum retries carried out by the client in case of a retryable error
  * @param retryDelayMs time between retries in ms
  */
-public record HttpHubClientConfig(int maxRetries, int retryDelayMs) {
+public record HttpRetryConfig(int maxRetries, int retryDelayMs) {
     public static final class Builder {
         private int maxRetries = 5;
         private int retryDelayMs = 2000;
@@ -21,7 +21,7 @@ public record HttpHubClientConfig(int maxRetries, int retryDelayMs) {
             return this;
         }
 
-        public HttpHubClientConfig build() {
+        public HttpRetryConfig build() {
             if (maxRetries < 0) {
                 throw new IllegalArgumentException("maxRetries must be greater than 0");
             }
@@ -30,7 +30,7 @@ public record HttpHubClientConfig(int maxRetries, int retryDelayMs) {
                 throw new IllegalArgumentException("retryDelayMs must be greater than 0");
             }
 
-            return new HttpHubClientConfig(maxRetries, retryDelayMs);
+            return new HttpRetryConfig(maxRetries, retryDelayMs);
         }
     }
 }

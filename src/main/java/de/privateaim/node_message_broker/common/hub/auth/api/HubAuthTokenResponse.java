@@ -15,7 +15,10 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class HubAuthTokenResponse {
 
-    @JsonProperty("access_token")
+    @JsonProperty(value = "access_token", required = true)
     public String accessToken;
+
+    @JsonProperty(value = "refresh_token")
+    public String refreshToken;
 
 }
