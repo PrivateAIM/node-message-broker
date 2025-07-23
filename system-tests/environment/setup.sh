@@ -71,7 +71,7 @@ do
     stateNodeB=$(docker inspect -f '{{.State.Health.Status}}' $containerNameNodeB)
     stateNodeC=$(docker inspect -f '{{.State.Health.Status}}' $containerNameNodeC)
 
-    if [ "$stateNodeA" = "healthy" ] && [ "$stateNodeB" = "healthy" ] && [ "$stateNodeC" = "healthy" ]; then
+    if [ "$stateNodeA" = "healthy" -a "$stateNodeB" = "healthy" -a "$stateNodeC" = "healthy" ]; then
       stateNodes="healthy"
     fi
 done
