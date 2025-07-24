@@ -51,6 +51,6 @@ func NewMessageBrokerClient(baseUrl string, managementBaseUrl string, accessToke
 		baseUrl:             baseUrl,
 		managementBaseUrl:   managementBaseUrl,
 		accessTokenAcquirer: accessTokenAcquirer,
-		httpClient:          http.Client{Timeout: time.Duration(1) * time.Second},
+		httpClient:          http.Client{Timeout: time.Duration(300) * time.Second},
 	}
 }
