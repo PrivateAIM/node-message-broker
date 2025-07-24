@@ -2,8 +2,8 @@ package de.privateaim.node_message_broker.message;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.privateaim.node_message_broker.ConfigurationUtil;
+import de.privateaim.node_message_broker.common.OIDCAuthenticator;
 import de.privateaim.node_message_broker.common.hub.HubClient;
-import de.privateaim.node_message_broker.common.hub.auth.HubAuthClient;
 import de.privateaim.node_message_broker.message.crypto.HubMessageCryptoService;
 import de.privateaim.node_message_broker.message.crypto.MessageCryptoService;
 import de.privateaim.node_message_broker.message.emit.EmitMessage;
@@ -76,10 +76,8 @@ class MessageSpringConfig {
     @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET")
     @Bean(destroyMethod = "disconnect")
     public Socket underlyingMessengerSocket(
-            @Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient,
+            @Qualifier("HUB_AUTHENTICATOR") OIDCAuthenticator hubAuthenticator,
             @Qualifier("HUB_MESSAGE_RECEIVER") MessageReceiver messageReceiver,
-            @Qualifier("HUB_AUTH_ROBOT_SECRET") String hubAuthRobotSecret,
-            @Qualifier("HUB_AUTH_ROBOT_ID") String hubAuthRobotId,
             @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET_SECURE_CLIENT") OkHttpClient secureBaseClient) {
         IO.Options options = IO.Options.builder()
                 .setPath(null)
@@ -96,8 +94,12 @@ class MessageSpringConfig {
             log.error("cannot connect to hub messenger at `{}`", hubMessengerBaseUrl);
 
             // we block here since this is a crucial component
-            options.auth.put("token", hubAuthClient.requestAccessToken(hubAuthRobotId, hubAuthRobotSecret)
-                    .block());
+            var oidcTokenPair = hubAuthenticator.authenticate().block();
+            if (oidcTokenPair == null) {
+                throw new RuntimeException("authentication failed - cannot connect to hub messenger at `%s`"
+                        .formatted(hubMessengerBaseUrl));
+            }
+            options.auth.put("token", oidcTokenPair.accessToken().getTokenValue());
 
             log.info("reconnecting to hub messenger at `{}` with new authentication token", hubMessengerBaseUrl);
             socket.connect();
@@ -110,8 +112,13 @@ class MessageSpringConfig {
                 objects -> {
                     log.info("trying to reconnect to hub messenger via socket at `{}", hubMessengerBaseUrl);
                     // we block here since this is a crucial component
-                    options.auth.put("token", hubAuthClient.requestAccessToken(hubAuthRobotId, hubAuthRobotSecret)
-                            .block());
+                    var oidcTokenPair = hubAuthenticator.authenticate().block();
+                    if (oidcTokenPair == null) {
+                        throw new RuntimeException("authentication failed - cannot connect to hub messenger at `%s`"
+                                .formatted(hubMessengerBaseUrl));
+                    }
+
+                    options.auth.put("token", oidcTokenPair.accessToken().getTokenValue());
                 });
 
         socket.on(SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER, objects -> {
@@ -241,12 +248,6 @@ class MessageSpringConfig {
         return new MessageSubscriptionServiceImpl(messageSubscriptionRepository);
     }
 
-    @Qualifier("HUB_MESSAGE_RECEIVE_JSON_MAPPER")
-    @Bean
-    ObjectMapper hubMessageJsonMapper() {
-        return new ObjectMapper();
-    }
-
     @Qualifier("HUB_MESSAGE_RECEIVE_MIDDLEWARE_DECRYPT")
     @Bean
     Function<ReceiveMessage, Mono<ReceiveMessage>> hubMessageReceiveDecryptionMiddleware(
@@ -303,7 +304,7 @@ class MessageSpringConfig {
     @Qualifier("HUB_MESSAGE_RECEIVER")
     @Bean
     MessageReceiver hubMessageReceiver(
-            @Qualifier("HUB_MESSAGE_RECEIVE_JSON_MAPPER") ObjectMapper jsonMapper,
+            @Qualifier("HUB_JSON_MAPPER") ObjectMapper jsonMapper,
             @Qualifier("HUB_MESSAGE_RECEIVE_MIDDLEWARES") List<Function<ReceiveMessage, Mono<ReceiveMessage>>> middlewares,
             @Qualifier("HUB_MESSAGE_RECEIVE_CONSUMER") MessageConsumer messageConsumer
     ) {

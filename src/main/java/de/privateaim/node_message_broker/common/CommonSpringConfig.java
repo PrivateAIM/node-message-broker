@@ -1,13 +1,11 @@
 package de.privateaim.node_message_broker.common;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.privateaim.node_message_broker.ConfigurationUtil;
 import de.privateaim.node_message_broker.common.hub.HttpHubClient;
-import de.privateaim.node_message_broker.common.hub.HttpHubClientConfig;
 import de.privateaim.node_message_broker.common.hub.HubClient;
-import de.privateaim.node_message_broker.common.hub.auth.HttpHubAuthClient;
-import de.privateaim.node_message_broker.common.hub.auth.HttpHubAuthClientConfig;
-import de.privateaim.node_message_broker.common.hub.auth.HubAuthClient;
-import de.privateaim.node_message_broker.common.hub.auth.RenewAuthTokenFilter;
+import de.privateaim.node_message_broker.common.hub.auth.HubOIDCAuthenticator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +21,9 @@ import java.util.List;
 
 @Configuration
 public class CommonSpringConfig {
+
+    private static final int EXCHANGE__MAX_RETRIES = 5;
+    private static final int EXCHANGE__MAX_RETRY_DELAY_MS = 1000;
 
     @Value("${app.hub.baseUrl}")
     private String hubCoreBaseUrl;
@@ -48,10 +49,16 @@ public class CommonSpringConfig {
         return hubAuthRobotId;
     }
 
+    @Qualifier("HUB_EXCHANGE_RETRY_CONFIG")
+    @Bean
+    HttpRetryConfig exchangeRetryConfig() {
+        return new HttpRetryConfig(EXCHANGE__MAX_RETRIES, EXCHANGE__MAX_RETRY_DELAY_MS);
+    }
+
     @Qualifier("HUB_CORE_WEB_CLIENT")
     @Bean
     public WebClient alwaysReAuthenticatedWebClient(
-            @Qualifier("HUB_AUTH_RENEW_TOKEN") ExchangeFilterFunction renewTokenFilter,
+            @Qualifier("HUB_AUTHENTICATION_MIDDLEWARE") ExchangeFilterFunction authenticationMiddleware,
             @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR") ReactorClientHttpConnector baseSslHttpClientConnector) {
         // We can't use Spring's default security mechanisms out-of-the-box here since HUB uses a non-standard grant
         // type which is not supported. There's a way by using a custom grant type accompanied by a client manager.
@@ -65,19 +72,17 @@ public class CommonSpringConfig {
         return WebClient.builder()
                 .uriBuilderFactory(factory)
                 .defaultHeaders(httpHeaders -> httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON)))
-                .filter(renewTokenFilter)
+                .filter(authenticationMiddleware)
                 .clientConnector(baseSslHttpClientConnector)
                 .build();
     }
 
     @Bean
-    public HubClient hubClient(@Qualifier("HUB_CORE_WEB_CLIENT") WebClient alwaysReAuthenticatedWebClient) {
-        var clientConfig = new HttpHubClientConfig.Builder()
-                .withMaxRetries(5)
-                .withRetryDelayMs(1000)
-                .build();
-
-        return new HttpHubClient(alwaysReAuthenticatedWebClient, clientConfig);
+    public HubClient hubClient(
+            @Qualifier("HUB_CORE_WEB_CLIENT") WebClient webClient,
+            @Qualifier("HUB_EXCHANGE_RETRY_CONFIG") HttpRetryConfig retryConfig
+    ) {
+        return new HttpHubClient(webClient, retryConfig);
     }
 
     @Qualifier("HUB_AUTH_WEB_CLIENT")
@@ -91,21 +96,37 @@ public class CommonSpringConfig {
                 .build();
     }
 
-    @Qualifier("HUB_AUTH_CLIENT")
+    @Qualifier("HUB_JSON_MAPPER")
     @Bean
-    public HubAuthClient hubAuthClient(@Qualifier("HUB_AUTH_WEB_CLIENT") WebClient webClient) {
-        var clientConfig = new HttpHubAuthClientConfig.Builder()
-                .withMaxRetries(5)
-                .withRetryDelayMs(1000)
-                .build();
-        return new HttpHubAuthClient(webClient, clientConfig);
+    ObjectMapper simpleJsonMapper() {
+        return new ObjectMapper()
+                .findAndRegisterModules()
+                .disable(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES)
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }
 
-    @Qualifier("HUB_AUTH_RENEW_TOKEN")
+    @Qualifier("HUB_AUTHENTICATOR")
     @Bean
-    ExchangeFilterFunction renewAuthTokenFilter(
-            @Qualifier("HUB_AUTH_CLIENT") HubAuthClient hubAuthClient,
-            @Qualifier("HUB_AUTH_ROBOT_SECRET") String hubAuthRobotSecret) {
-        return new RenewAuthTokenFilter(hubAuthClient, hubAuthRobotId, hubAuthRobotSecret);
+    OIDCAuthenticator hubAuthenticator(
+            @Qualifier("HUB_AUTH_WEB_CLIENT") WebClient webClient,
+            @Qualifier("HUB_EXCHANGE_RETRY_CONFIG") HttpRetryConfig retryConfig,
+            @Qualifier("HUB_AUTH_ROBOT_ID") String hubAuthRobotId,
+            @Qualifier("HUB_AUTH_ROBOT_SECRET") String hubAuthRobotSecret,
+            @Qualifier("HUB_JSON_MAPPER") ObjectMapper jsonMapper
+    ) {
+        return HubOIDCAuthenticator.builder()
+                .usingWebClient(webClient)
+                .withRetryConfig(retryConfig)
+                .withAuthCredentials(hubAuthRobotId, hubAuthRobotSecret)
+                .withJsonDecoder(jsonMapper)
+                .build();
+    }
+
+    @Qualifier("HUB_AUTHENTICATION_MIDDLEWARE")
+    @Bean
+    ExchangeFilterFunction hubAuthenticationMiddleware(
+            @Qualifier("HUB_AUTHENTICATOR") OIDCAuthenticator authenticator
+    ) {
+        return new OIDCAuthenticatorMiddleware(authenticator);
     }
 }
