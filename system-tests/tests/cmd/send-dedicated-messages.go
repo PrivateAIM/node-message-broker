@@ -50,11 +50,11 @@ func sendDedicatedMessagesFunc(cmd *cobra.Command, _ []string) error {
 		log.Fatalf("failed to wait for test nodes to get ready: %v", err)
 	}
 
-	log.Infof("setting up subscription for result server at reciever node with base URL: `%s`", testNodeClients.ReceiverNodeClient.GetBaseUrl())
+	log.Infof("setting up subscription for result server at receiver node with base URL: `%s`", testNodeClients.ReceiverNodeClient.GetBaseUrl())
 	// TODO: remove hard coded value
 	subscriptionId, err := configureReceiverNodeSubscription(testNodeClients.ReceiverNodeClient, globalFlags.AnalysisId, "http://host.docker.internal:8080/results")
 	if err != nil {
-		return fmt.Errorf("could not configure receiver node")
+		return fmt.Errorf("could not configure receiver node: %v", err)
 	}
 	defer func() {
 		log.Info("cleaning up receiver node subscription")

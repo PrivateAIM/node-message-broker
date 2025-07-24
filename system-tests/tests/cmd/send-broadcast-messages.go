@@ -55,7 +55,7 @@ func sendBroadcastMessagesFunc(cmd *cobra.Command, _ []string) error {
 	// TODO: remove hard coded value
 	subscriptionIdA, err := configureReceiverNodeSubscription(testNodeClients.ReceiverNodeAClient, globalFlags.AnalysisId, "http://host.docker.internal:8080/results")
 	if err != nil {
-		return fmt.Errorf("could not configure receiver node")
+		return fmt.Errorf("could not configure receiver node: %v", err)
 	}
 	defer func() {
 		log.Info("cleaning up receiver node subscription")
@@ -66,7 +66,7 @@ func sendBroadcastMessagesFunc(cmd *cobra.Command, _ []string) error {
 	// TODO: remove hard coded value
 	subscriptionIdB, err := configureReceiverNodeSubscription(testNodeClients.ReceiverNodeBClient, globalFlags.AnalysisId, "http://host.docker.internal:8080/results")
 	if err != nil {
-		return fmt.Errorf("could not configure receiver node")
+		return fmt.Errorf("could not configure receiver node: %v", err)
 	}
 	defer func() {
 		log.Info("cleaning up receiver node subscription")
