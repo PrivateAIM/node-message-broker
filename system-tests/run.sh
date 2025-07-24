@@ -17,6 +17,7 @@ echo "Running system test for sending messages to dedicated recipients..."
 "$BASE_DIR"/tests/mb-test-cli send-dedicated-messages \
   --analysis-id="$ANALYSIS_ID" \
   --bootstrap-nodes="http://localhost:18088,http://localhost:18089" \
+  --bootstrap-management-nodes="http://localhost:19088,http://localhost:19089" \
   --node-auth-base-url="http://localhost:18080" \
   --node-auth-client-id="message-broker" \
   --node-auth-client-secret="thtiFoImj6rvrfTvKkiOlSigRcYLbQwf"
@@ -33,6 +34,7 @@ echo "Running system test for sending broadcast messages to various recipients..
 "$BASE_DIR"/tests/mb-test-cli send-broadcast-messages \
   --analysis-id="$ANALYSIS_ID" \
   --bootstrap-nodes="http://localhost:18088,http://localhost:18089,http://localhost:18090" \
+  --bootstrap-management-nodes="http://localhost:19088,http://localhost:19089,http://localhost:19090" \
   --node-auth-base-url="http://localhost:18080" \
   --node-auth-client-id="message-broker" \
   --node-auth-client-secret="thtiFoImj6rvrfTvKkiOlSigRcYLbQwf"

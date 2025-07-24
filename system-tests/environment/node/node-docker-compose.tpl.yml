@@ -8,6 +8,7 @@ services:
       keycloak:
         condition: service_healthy
     ports:
+      - "19088:8090" # management server
       - "18088:18088"
     restart: always
     secrets:
@@ -25,6 +26,7 @@ services:
       PERSISTENCE_HOSTNAME: "node-a-db"
       PERSISTENCE_PORT: 27017
       PERSISTENCE_DATABASE_NAME: "node-message-broker"
+      LOG_LEVEL: "debug"
     networks:
       node:
       hub-node-intercomm:
@@ -42,6 +44,7 @@ services:
       keycloak:
         condition: service_healthy
     ports:
+      - "19089:8090" # management server
       - "18089:18089"
     restart: always
     secrets:
@@ -59,6 +62,7 @@ services:
       PERSISTENCE_HOSTNAME: "node-b-db"
       PERSISTENCE_PORT: 27017
       PERSISTENCE_DATABASE_NAME: "node-message-broker"
+      LOG_LEVEL: "debug"
     networks:
       node:
       hub-node-intercomm:
@@ -76,6 +80,7 @@ services:
       keycloak:
         condition: service_healthy
     ports:
+      - "19090:8090" # management server
       - "18090:18090"
     restart: always
     secrets:
@@ -93,6 +98,7 @@ services:
       PERSISTENCE_HOSTNAME: "node-c-db"
       PERSISTENCE_PORT: 27017
       PERSISTENCE_DATABASE_NAME: "node-message-broker"
+      LOG_LEVEL: "debug"
     networks:
       node:
       hub-node-intercomm:

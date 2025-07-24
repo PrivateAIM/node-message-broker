@@ -33,13 +33,22 @@ func sendDedicatedMessagesFunc(cmd *cobra.Command, _ []string) error {
 	log.Info("Running system test for sending messages to dedicated recipients")
 	log.Infof("Running test case with analysis ID: `%s`", globalFlags.AnalysisId)
 	log.Infof("Running test case with bootstrap nodes: `%s`", globalFlags.BootstrapNodes)
+	log.Infof("Running test case with bootstrap management nodes: `%s`", globalFlags.BootstrapManagementNodes)
 
 	if len(globalFlags.BootstrapNodes) < 2 {
 		return fmt.Errorf("at least 2 bootstrap nodes have to be specified")
 	}
+	if len(globalFlags.BootstrapNodes) != len(globalFlags.BootstrapManagementNodes) {
+		return fmt.Errorf("number of bootstrap nodes has to be equal to the number of bootstrap management nodes")
+	}
 
 	authClient := messagebroker.NewMessageBrokerAuthClient(globalFlags.NodeAuthBaseUrl, globalFlags.NodeAuthClientId, globalFlags.NodeAuthClientSecret)
-	testNodeClients := getDedicatedMessagesTestNodeClients(globalFlags.BootstrapNodes, authClient)
+	testNodeClients := getDedicatedMessagesTestNodeClients(globalFlags.BootstrapNodes, globalFlags.BootstrapManagementNodes, authClient)
+
+	log.Info("waiting for all test nodes to get ready")
+	if err := waitForTestNodesToBeReady([]messagebroker.MessageBrokerClient{testNodeClients.ReceiverNodeClient, testNodeClients.SenderNodeClient}, 30*time.Second); err != nil {
+		log.Fatalf("failed to wait for test nodes to get ready: %v", err)
+	}
 
 	log.Infof("setting up subscription for result server at reciever node with base URL: `%s`", testNodeClients.ReceiverNodeClient.GetBaseUrl())
 	// TODO: remove hard coded value
@@ -123,10 +132,10 @@ func sendDedicatedMessagesFunc(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func getDedicatedMessagesTestNodeClients(bootstrapNodes []string, authClient messagebroker.MessageBrokerAuthClient) dedicatedMessagesTestNodeClients {
+func getDedicatedMessagesTestNodeClients(bootstrapNodes []string, bootstrapManagementNodes []string, authClient messagebroker.MessageBrokerAuthClient) dedicatedMessagesTestNodeClients {
 	return dedicatedMessagesTestNodeClients{
-		SenderNodeClient:   messagebroker.NewMessageBrokerClient(bootstrapNodes[0], authClient.AcquireAccessToken),
-		ReceiverNodeClient: messagebroker.NewMessageBrokerClient(bootstrapNodes[1], authClient.AcquireAccessToken),
+		SenderNodeClient:   messagebroker.NewMessageBrokerClient(bootstrapNodes[0], bootstrapManagementNodes[0], authClient.AcquireAccessToken),
+		ReceiverNodeClient: messagebroker.NewMessageBrokerClient(bootstrapNodes[1], bootstrapManagementNodes[1], authClient.AcquireAccessToken),
 	}
 }
 
