@@ -34,30 +34,39 @@ func sendBroadcastMessagesFunc(cmd *cobra.Command, _ []string) error {
 	log.Info("Running system test for sending messages to various recipients using broadcast")
 	log.Infof("Running test case with analysis ID: `%s`", globalFlags.AnalysisId)
 	log.Infof("Running test case with bootstrap nodes: `%s`", globalFlags.BootstrapNodes)
+	log.Infof("Running test case with bootstrap management nodes: `%s`", globalFlags.BootstrapManagementNodes)
 
 	if len(globalFlags.BootstrapNodes) < 3 {
 		return fmt.Errorf("at least 3 bootstrap nodes have to be specified")
 	}
+	if len(globalFlags.BootstrapNodes) != len(globalFlags.BootstrapManagementNodes) {
+		return fmt.Errorf("number of bootstrap nodes has to be equal to the number of bootstrap management nodes")
+	}
 
 	authClient := messagebroker.NewMessageBrokerAuthClient(globalFlags.NodeAuthBaseUrl, globalFlags.NodeAuthClientId, globalFlags.NodeAuthClientSecret)
-	testNodeClients := getBroadcastMessagesTestNodeClients(globalFlags.BootstrapNodes, authClient)
+	testNodeClients := getBroadcastMessagesTestNodeClients(globalFlags.BootstrapNodes, globalFlags.BootstrapManagementNodes, authClient)
 
-	log.Infof("setting up subscription for result server at reciever node with base URL: `%s`", testNodeClients.ReceiverNodeAClient.GetBaseUrl())
+	log.Info("waiting for all test nodes to get ready")
+	if err := waitForTestNodesToBeReady([]messagebroker.MessageBrokerClient{testNodeClients.ReceiverNodeAClient, testNodeClients.ReceiverNodeBClient, testNodeClients.SenderNodeClient}, 30*time.Second); err != nil {
+		log.Fatalf("failed to wait for test nodes to get ready: %v", err)
+	}
+
+	log.Infof("setting up subscription for result server at receiver node with base URL: `%s`", testNodeClients.ReceiverNodeAClient.GetBaseUrl())
 	// TODO: remove hard coded value
 	subscriptionIdA, err := configureReceiverNodeSubscription(testNodeClients.ReceiverNodeAClient, globalFlags.AnalysisId, "http://host.docker.internal:8080/results")
 	if err != nil {
-		return fmt.Errorf("could not configure receiver node")
+		return fmt.Errorf("could not configure receiver node: %v", err)
 	}
 	defer func() {
 		log.Info("cleaning up receiver node subscription")
 		cleanUpReceiverNodeSubscription(testNodeClients.ReceiverNodeAClient, globalFlags.AnalysisId, subscriptionIdA)
 	}()
 
-	log.Infof("setting up subscription for result server at reciever node with base URL: `%s`", testNodeClients.ReceiverNodeBClient.GetBaseUrl())
+	log.Infof("setting up subscription for result server at receiver node with base URL: `%s`", testNodeClients.ReceiverNodeBClient.GetBaseUrl())
 	// TODO: remove hard coded value
 	subscriptionIdB, err := configureReceiverNodeSubscription(testNodeClients.ReceiverNodeBClient, globalFlags.AnalysisId, "http://host.docker.internal:8080/results")
 	if err != nil {
-		return fmt.Errorf("could not configure receiver node")
+		return fmt.Errorf("could not configure receiver node: %v", err)
 	}
 	defer func() {
 		log.Info("cleaning up receiver node subscription")
@@ -132,11 +141,11 @@ func sendBroadcastMessagesFunc(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func getBroadcastMessagesTestNodeClients(bootstrapNodes []string, authClient messagebroker.MessageBrokerAuthClient) TestNodeClients {
+func getBroadcastMessagesTestNodeClients(bootstrapNodes []string, bootstrapManagementNodes []string, authClient messagebroker.MessageBrokerAuthClient) TestNodeClients {
 	return TestNodeClients{
-		SenderNodeClient:    messagebroker.NewMessageBrokerClient(bootstrapNodes[0], authClient.AcquireAccessToken),
-		ReceiverNodeAClient: messagebroker.NewMessageBrokerClient(bootstrapNodes[1], authClient.AcquireAccessToken),
-		ReceiverNodeBClient: messagebroker.NewMessageBrokerClient(bootstrapNodes[2], authClient.AcquireAccessToken),
+		SenderNodeClient:    messagebroker.NewMessageBrokerClient(bootstrapNodes[0], bootstrapManagementNodes[0], authClient.AcquireAccessToken),
+		ReceiverNodeAClient: messagebroker.NewMessageBrokerClient(bootstrapNodes[1], bootstrapManagementNodes[1], authClient.AcquireAccessToken),
+		ReceiverNodeBClient: messagebroker.NewMessageBrokerClient(bootstrapNodes[2], bootstrapManagementNodes[2], authClient.AcquireAccessToken),
 	}
 }
 
