@@ -22,6 +22,15 @@ management:
       exposure:
         # This property enables the openapi and swagger-ui endpoints to be exposed beneath the actuator base path.
         include: "health,openapi,swagger-ui"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
 logging:
   level:
     org.springframework.web: ${LOG_LEVEL:info}
