@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.ProxyProvider;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -16,6 +17,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -25,6 +28,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Configuration parts for SSL functionality.
@@ -48,10 +52,48 @@ public class CommonSslSpringConfig {
     @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR")
     @Bean
     ReactorClientHttpConnector baseHttpClientConnector(@Qualifier("COMMON_NETTY_SSL_CONTEXT") SslContext sslContext) {
+        String proxyUrl = Optional.ofNullable(System.getenv("HTTPS_PROXY")).orElse(System.getenv("HTTP_PROXY"));
+        if (proxyUrl != null && proxyUrl.startsWith("http")) {
+            try {
+                System.out.println("Proxy URL found in environment variables");
+
+                URI uri = new URI(proxyUrl);
+                String host = uri.getHost();
+                int port = uri.getPort();
+
+                System.out.println("Proxy URL found: " + host + ":" + port);
+
+                HttpClient httpClient = HttpClient.create().secure(t -> t.sslContext(sslContext))
+                    .proxy(proxy -> proxy
+                        .type(ProxyProvider.Proxy.HTTP)
+                        .host(host)
+                        .port(port));
+
+                return new ReactorClientHttpConnector(httpClient);
+            } catch (URISyntaxException e) {
+                System.err.println("Invalid proxy URL format: " + proxyUrl);
+                e.printStackTrace();
+                return null;
+            }
+        } else {
+            return new ReactorClientHttpConnector(
+                    HttpClient
+                            .create()
+                            .secure(t -> t.sslContext(sslContext)));
+        }
+        // return new ReactorClientHttpConnector(
+        //     HttpClient
+        //             .create()
+        //             .secure(t -> t.sslContext(sslContext)));
+    }
+
+    @Qualifier("INTERNAL_SSL_HTTP_CLIENT_CONNECTOR")
+    @Bean
+    ReactorClientHttpConnector internalHttpClientConnector(@Qualifier("COMMON_NETTY_SSL_CONTEXT") SslContext sslContext) {
         return new ReactorClientHttpConnector(
-                HttpClient
-                        .create()
-                        .secure(t -> t.sslContext(sslContext)));
+            HttpClient
+                    .create()
+                    .secure(t -> t.sslContext(sslContext)));
     }
 
     @Qualifier("COMMON_NETTY_SSL_CONTEXT")

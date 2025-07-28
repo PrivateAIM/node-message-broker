@@ -38,13 +38,17 @@ import javax.net.ssl.X509TrustManager;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -67,10 +71,31 @@ class MessageSpringConfig {
     @Bean
     OkHttpClient socketBaseClient(@Qualifier("COMMON_JAVA_SSL_CONTEXT") SSLContext sslCtx,
                                   @Qualifier("COMMON_TRUST_MANAGER_FACTORY") TrustManagerFactory tmf) {
-        return new OkHttpClient.Builder()
-                .sslSocketFactory(sslCtx.getSocketFactory(), (X509TrustManager) tmf.getTrustManagers()[0])
-                .readTimeout(1, TimeUnit.MINUTES)
-                .build();
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                    .sslSocketFactory(sslCtx.getSocketFactory(), (X509TrustManager) tmf.getTrustManagers()[0])
+                    .readTimeout(1, TimeUnit.MINUTES);
+
+        String proxyUrl = Optional.ofNullable(System.getenv("HTTPS_PROXY")).orElse(System.getenv("HTTP_PROXY"));
+        // String noProxy = System.getenv("NO_PROXY");
+        
+        if (proxyUrl != null && proxyUrl.startsWith("http")) {
+            try {
+                URI uri = new URI(proxyUrl);
+                String host = uri.getHost();
+                int port = uri.getPort();
+
+                System.out.println("Socket proxy URL found: " + host + ":" + port);
+
+                Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+
+                builder.proxy(proxy);
+            } catch (URISyntaxException e) {
+                System.err.println("Invalid proxy URL format: " + proxyUrl);
+                e.printStackTrace();
+                return null;
+            }
+        }
+        return builder.build();
     }
 
     @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET")
@@ -235,10 +260,10 @@ class MessageSpringConfig {
     @Qualifier("HUB_MESSAGE_RECEIVE_FORWARD_WEB_CLIENT")
     @Bean
     public WebClient messageForwardWebClient(
-            @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR") ReactorClientHttpConnector baseSslHttpClientConnector) {
+            @Qualifier("INTERNAL_SSL_HTTP_CLIENT_CONNECTOR") ReactorClientHttpConnector internalSslHttpClientConnector) {
         return WebClient.builder()
                 .defaultHeaders(httpHeaders -> httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON)))
-                .clientConnector(baseSslHttpClientConnector)
+                .clientConnector(internalSslHttpClientConnector)
                 .build();
     }
 
