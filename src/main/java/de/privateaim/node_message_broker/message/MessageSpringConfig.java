@@ -18,6 +18,7 @@ import io.socket.client.IO;
 import io.socket.client.Manager;
 import io.socket.client.Socket;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMKeyPair;
@@ -70,7 +71,7 @@ class MessageSpringConfig {
     @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET_SECURE_CLIENT")
     @Bean
     OkHttpClient socketBaseClient(@Qualifier("COMMON_JAVA_SSL_CONTEXT") SSLContext sslCtx,
-                                  @Qualifier("COMMON_TRUST_MANAGER_FACTORY") TrustManagerFactory tmf) {
+                                @Qualifier("COMMON_TRUST_MANAGER_FACTORY") TrustManagerFactory tmf) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
                     .sslSocketFactory(sslCtx.getSocketFactory(), (X509TrustManager) tmf.getTrustManagers()[0])
                     .readTimeout(1, TimeUnit.MINUTES);
@@ -83,12 +84,28 @@ class MessageSpringConfig {
                 URI uri = new URI(proxyUrl);
                 String host = uri.getHost();
                 int port = uri.getPort();
+                String userInfo = uri.getUserInfo();
 
-                System.out.println("Socket proxy URL found: " + host + ":" + port);
+                log.info("Socket proxy URL found: " + host + ":" + port);
 
                 Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
-
                 builder.proxy(proxy);
+
+                // Add proxy authentication if username and password are present
+                if (userInfo != null && userInfo.contains(":")) {
+                    String[] credentials = userInfo.split(":", 2);
+                    String username = credentials[0];
+                    String password = credentials[1];
+                    
+                    log.info("Socket proxy username and password found");
+                    
+                    builder.proxyAuthenticator((route, response) -> {
+                        String credential = Credentials.basic(username, password);
+                        return response.request().newBuilder()
+                                .header("Proxy-Authorization", credential)
+                                .build();
+                    });
+                }
             } catch (URISyntaxException e) {
                 System.err.println("Invalid proxy URL format: " + proxyUrl);
                 e.printStackTrace();

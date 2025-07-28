@@ -53,6 +53,7 @@ public class CommonSslSpringConfig {
     @Bean
     ReactorClientHttpConnector baseHttpClientConnector(@Qualifier("COMMON_NETTY_SSL_CONTEXT") SslContext sslContext) {
         String proxyUrl = Optional.ofNullable(System.getenv("HTTPS_PROXY")).orElse(System.getenv("HTTP_PROXY"));
+
         if (proxyUrl != null && proxyUrl.startsWith("http")) {
             try {
                 System.out.println("Proxy URL found in environment variables");
@@ -61,13 +62,36 @@ public class CommonSslSpringConfig {
                 String host = uri.getHost();
                 int port = uri.getPort();
 
-                System.out.println("Proxy URL found: " + host + ":" + port);
+                log.info("Proxy URL found: " + host + ":" + port);
 
-                HttpClient httpClient = HttpClient.create().secure(t -> t.sslContext(sslContext))
-                    .proxy(proxy -> proxy
-                        .type(ProxyProvider.Proxy.HTTP)
-                        .host(host)
-                        .port(port));
+                String userInfo = uri.getUserInfo();
+                HttpClient httpClient;
+
+                if (userInfo != null && userInfo.contains(":")) {
+                    String[] credentials = userInfo.split(":", 2);
+                    String username = credentials[0];
+                    String password = credentials[1];
+
+                    log.info("Proxy username and password found");
+
+                    httpClient = HttpClient.create()
+                        .secure(t -> t.sslContext(sslContext))
+                        .proxy(proxy -> proxy
+                            .type(ProxyProvider.Proxy.HTTP)
+                            .host(host)
+                            .port(port)
+                            .username(username)
+                            .password(s -> password)
+                        );
+                } else {
+                    httpClient = HttpClient.create()
+                        .secure(t -> t.sslContext(sslContext))
+                        .proxy(proxy -> proxy
+                            .type(ProxyProvider.Proxy.HTTP)
+                            .host(host)
+                            .port(port)
+                        );
+                }
 
                 return new ReactorClientHttpConnector(httpClient);
             } catch (URISyntaxException e) {
@@ -77,14 +101,9 @@ public class CommonSslSpringConfig {
             }
         } else {
             return new ReactorClientHttpConnector(
-                    HttpClient
-                            .create()
+                    HttpClient.create()
                             .secure(t -> t.sslContext(sslContext)));
         }
-        // return new ReactorClientHttpConnector(
-        //     HttpClient
-        //             .create()
-        //             .secure(t -> t.sslContext(sslContext)));
     }
 
     @Qualifier("INTERNAL_SSL_HTTP_CLIENT_CONNECTOR")
