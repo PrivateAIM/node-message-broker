@@ -6,6 +6,8 @@ import de.privateaim.node_message_broker.ConfigurationUtil;
 import de.privateaim.node_message_broker.common.hub.HttpHubClient;
 import de.privateaim.node_message_broker.common.hub.HubClient;
 import de.privateaim.node_message_broker.common.hub.auth.HubOIDCAuthenticator;
+import io.netty.handler.ssl.SslContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,10 +17,15 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.ProxyProvider;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
+@Slf4j
 @Configuration
 public class CommonSpringConfig {
 
@@ -36,6 +43,21 @@ public class CommonSpringConfig {
 
     @Value("${app.hub.auth.robotSecretFile}")
     private String hubAuthRobotSecretFile;
+
+    @Value("${app.proxy.host}")
+    private String proxyHost;
+
+    @Value("${app.proxy.port}")
+    private Integer proxyPort;
+
+    @Value("${app.proxy.whitelist}")
+    private String proxyWhitelist;
+
+    @Value("${app.proxy.username}")
+    private String proxyUsername;
+
+    @Value("${app.proxy.passwordFile}")
+    private String proxyPasswordFile;
 
     @Qualifier("HUB_AUTH_ROBOT_SECRET")
     @Bean
@@ -55,11 +77,59 @@ public class CommonSpringConfig {
         return new HttpRetryConfig(EXCHANGE__MAX_RETRIES, EXCHANGE__MAX_RETRY_DELAY_MS);
     }
 
+    @Qualifier("CORE_HTTP_CLIENT")
+    @Bean
+    HttpClient decoratedHttpClient(@Qualifier("COMMON_NETTY_SSL_CONTEXT") SslContext sslContext) {
+        var client = HttpClient.create();
+        decorateClientWithSSLContext(client, sslContext);
+        decorateClientWithProxySettings(client);
+
+        return client;
+    }
+
+    private void decorateClientWithSSLContext(HttpClient client, SslContext sslContext) {
+        client.secure(t -> t.sslContext(sslContext));
+    }
+
+    private void decorateClientWithProxySettings(HttpClient client) {
+        if (proxyHost != null && proxyPort != null) {
+            log.info("configuring usage of proxy at `{}:{}` with the following hosts whitelisted (via regex): `{}`",
+                    proxyHost, proxyPort, proxyWhitelist);
+            client.proxy(proxy -> {
+                        var proxyBuilder = proxy.type(ProxyProvider.Proxy.HTTP)
+                                .host(proxyHost)
+                                .port(proxyPort)
+                                .nonProxyHosts(proxyWhitelist);
+
+                        if (proxyUsername != null && proxyPasswordFile != null) {
+                            try {
+                                log.info("configuring authentication for proxy");
+                                var proxyPassword = Files.readString(Paths.get(proxyPasswordFile));
+                                proxyBuilder.username(proxyUsername)
+                                        .password((_username) -> proxyPassword);
+                            } catch (IOException e) {
+                                log.error("cannot read password file for proxy at `{}`", proxyPasswordFile, e);
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+            );
+        } else {
+            log.info("skipping proxy configuration due to no specified settings");
+        }
+    }
+
+    @Qualifier("CORE_HTTP_CONNECTOR")
+    @Bean
+    ReactorClientHttpConnector httpConnector(@Qualifier("CORE_HTTP_CLIENT") HttpClient httpClient) {
+        return new ReactorClientHttpConnector(httpClient);
+    }
+
     @Qualifier("HUB_CORE_WEB_CLIENT")
     @Bean
     public WebClient alwaysReAuthenticatedWebClient(
             @Qualifier("HUB_AUTHENTICATION_MIDDLEWARE") ExchangeFilterFunction authenticationMiddleware,
-            @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR") ReactorClientHttpConnector baseSslHttpClientConnector) {
+            @Qualifier("CORE_HTTP_CONNECTOR") ReactorClientHttpConnector httpConnector) {
         // We can't use Spring's default security mechanisms out-of-the-box here since HUB uses a non-standard grant
         // type which is not supported. There's a way by using a custom grant type accompanied by a client manager.
         // However, this endeavour is not pursued for the sake of simplicity.
@@ -73,7 +143,7 @@ public class CommonSpringConfig {
                 .uriBuilderFactory(factory)
                 .defaultHeaders(httpHeaders -> httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON)))
                 .filter(authenticationMiddleware)
-                .clientConnector(baseSslHttpClientConnector)
+                .clientConnector(httpConnector)
                 .build();
     }
 
@@ -88,11 +158,11 @@ public class CommonSpringConfig {
     @Qualifier("HUB_AUTH_WEB_CLIENT")
     @Bean
     WebClient hubAuthWebClient(
-            @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR") ReactorClientHttpConnector baseSslHttpClientConnector) {
+            @Qualifier("CORE_HTTP_CONNECTOR") ReactorClientHttpConnector httpConnector) {
         return WebClient.builder()
                 .baseUrl(hubAuthBaseUrl)
                 .defaultHeaders(httpHeaders -> httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON)))
-                .clientConnector(baseSslHttpClientConnector)
+                .clientConnector(httpConnector)
                 .build();
     }
 

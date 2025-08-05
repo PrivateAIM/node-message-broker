@@ -7,8 +7,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -44,15 +42,6 @@ public class CommonSslSpringConfig {
 
     @Value("${app.security.additionalTrustedCertsFile}")
     private String additionalTrustedCertsFile;
-
-    @Qualifier("BASE_SSL_HTTP_CLIENT_CONNECTOR")
-    @Bean
-    ReactorClientHttpConnector baseHttpClientConnector(@Qualifier("COMMON_NETTY_SSL_CONTEXT") SslContext sslContext) {
-        return new ReactorClientHttpConnector(
-                HttpClient
-                        .create()
-                        .secure(t -> t.sslContext(sslContext)));
-    }
 
     @Qualifier("COMMON_NETTY_SSL_CONTEXT")
     @Bean
