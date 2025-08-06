@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Flux;
@@ -30,7 +30,7 @@ public final class DiscoveryControllerIT {
     private static final String ANALYSIS_ID = "ana-123";
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    @MockBean
+    @MockitoBean
     private DiscoveryService mockedDiscoveryService;
 
     private WebTestClient client;
@@ -96,8 +96,8 @@ public final class DiscoveryControllerIT {
         @Test
         void returns200WithAllDiscoveredParticipants() throws IOException {
             var participants = List.of(
-                    new Participant("123", ParticipantType.AGGREGATOR),
-                    new Participant("456", ParticipantType.DEFAULT)
+                    new Participant("123", "abc", ParticipantType.AGGREGATOR),
+                    new Participant("456", "def", ParticipantType.DEFAULT)
             );
             Mockito.doReturn(Flux.fromIterable(participants))
                     .when(mockedDiscoveryService)
@@ -113,9 +113,9 @@ public final class DiscoveryControllerIT {
 
             assertEquals(participants.size(), clientReceivedParticipants.size());
             assertEquals(participants.getFirst().nodeType(), clientReceivedParticipants.getFirst().getNodeType());
-            assertEquals(participants.getFirst().nodeRobotId(), clientReceivedParticipants.getFirst().nodeId);
+            assertEquals(participants.getFirst().nodeId(), clientReceivedParticipants.getFirst().nodeId);
             assertEquals(participants.getLast().nodeType(), clientReceivedParticipants.getLast().getNodeType());
-            assertEquals(participants.getLast().nodeRobotId(), clientReceivedParticipants.getLast().nodeId);
+            assertEquals(participants.getLast().nodeId(), clientReceivedParticipants.getLast().nodeId);
         }
     }
 
@@ -164,7 +164,7 @@ public final class DiscoveryControllerIT {
 
         @Test
         void returns200WithTheDiscoveredSelfNode() throws IOException {
-            var self = new Participant("robot-123", ParticipantType.AGGREGATOR);
+            var self = new Participant("node-123", "robot-123", ParticipantType.AGGREGATOR);
             Mockito.doReturn(Mono.just(self))
                     .when(mockedDiscoveryService)
                     .discoverSelfInAnalysis(ANALYSIS_ID);
@@ -178,7 +178,7 @@ public final class DiscoveryControllerIT {
 
             assertNotNull(clientReceivedSelf);
             assertEquals(self.nodeType(), clientReceivedSelf.getNodeType());
-            assertEquals(self.nodeRobotId(), clientReceivedSelf.getNodeId());
+            assertEquals(self.nodeId(), clientReceivedSelf.getNodeId());
         }
     }
 }

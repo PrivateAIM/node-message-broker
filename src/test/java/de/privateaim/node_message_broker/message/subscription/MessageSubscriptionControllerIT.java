@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
@@ -44,7 +44,7 @@ public class MessageSubscriptionControllerIT extends AbstractBaseDatabaseIT {
     private static final UUID SUBSCRIPTION_ID = UUID.fromString("7c0a1126-5e2e-45c0-8177-8a6c56cb046d");
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    @MockBean
+    @MockitoBean
     private MessageSubscriptionServiceImpl mockedSubscriptionService;
 
     private WebTestClient client;

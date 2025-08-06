@@ -98,7 +98,7 @@ public final class MessageServiceIT {
                     .setBody(JSON.writeValueAsString(mockedHubResponse)));
 
             var messageRequest = new MessageRequest();
-            messageRequest.recipients = List.of("robot-not-in-list");
+            messageRequest.recipients = List.of("node-not-in-list");
             messageRequest.message = JsonNodeFactory.instance.objectNode();
 
             StepVerifier.create(messageService.sendMessageToSelectedRecipients("123", messageRequest))
@@ -115,7 +115,7 @@ public final class MessageServiceIT {
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
             var messageRequest = new MessageRequest();
-            messageRequest.recipients = List.of("robot-1", "robot-2");
+            messageRequest.recipients = List.of("node-1", "node-2");
             messageRequest.message = JsonNodeFactory.instance.objectNode();
 
             mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK)
@@ -143,7 +143,7 @@ public final class MessageServiceIT {
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
             var messageRequest = new MessageRequest();
-            messageRequest.recipients = List.of("robot-1", "robot-2", "robot-3");
+            messageRequest.recipients = List.of("node-1", "node-2", "node-3");
             messageRequest.message = JsonNodeFactory.instance.objectNode();
 
             mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK)
@@ -172,7 +172,7 @@ public final class MessageServiceIT {
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
             var messageRequest = new MessageRequest();
-            messageRequest.recipients = List.of("robot-1", "robot-2", SELF_ROBOT_ID);
+            messageRequest.recipients = List.of("node-1", "node-2", "node-3");
             messageRequest.message = JsonNodeFactory.instance.objectNode();
 
             mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK)

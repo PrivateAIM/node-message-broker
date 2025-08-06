@@ -12,6 +12,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.core.task.VirtualThreadTaskExecutor;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
@@ -198,5 +201,11 @@ public class CommonSpringConfig {
             @Qualifier("HUB_AUTHENTICATOR") OIDCAuthenticator authenticator
     ) {
         return new OIDCAuthenticatorMiddleware(authenticator);
+    }
+
+    @Primary
+    @Bean
+    public TaskExecutor defaultTaskExecutor() {
+        return new VirtualThreadTaskExecutor();
     }
 }

@@ -35,7 +35,7 @@ public final class DiscoveryService {
      * identifier.
      *
      * @param analysisId unique identifier of the analysis whose participating nodes shall get discovered
-     * @return All participants of the analysis if there are any.s
+     * @return All participants of the analysis if there are any.
      */
     Flux<Participant> discoverAllParticipantsOfAnalysis(@NotNull String analysisId) {
         if (analysisId == null) {
@@ -50,6 +50,7 @@ public final class DiscoveryService {
                         "analysis nodes", err))
                 .flatMapIterable(analysisNodes -> analysisNodes.stream()
                         .map(analysisNode -> new Participant(
+                                analysisNode.node.id,
                                 analysisNode.node.robotId,
                                 ParticipantType.fromRepresentation(analysisNode.node.type)
                         )).toList())
@@ -77,7 +78,7 @@ public final class DiscoveryService {
                 .collectList()
                 .flatMap(participants -> {
                     var selfParticipants = participants.stream()
-                            .filter(p -> p.nodeRobotId().equals(selfRobotId))
+                            .filter(p -> p.robotId().equals(selfRobotId))
                             .toList();
 
                     if (selfParticipants.isEmpty()) {
