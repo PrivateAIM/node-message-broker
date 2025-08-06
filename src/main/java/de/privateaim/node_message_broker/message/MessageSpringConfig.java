@@ -121,7 +121,7 @@ class MessageSpringConfig {
         var proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
         clientBuilder.proxy(proxy);
 
-        if (proxyUsername != null && proxyPasswordFile != null) {
+        if (!proxyUsername.isBlank() && !proxyPasswordFile.isBlank()) {
             try {
                 var proxyPassword = Files.readString(Paths.get(proxyPasswordFile));
 

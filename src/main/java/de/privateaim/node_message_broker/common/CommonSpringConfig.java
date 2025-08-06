@@ -95,16 +95,23 @@ public class CommonSpringConfig {
     }
 
     private void decorateClientWithProxySettings(HttpClient client) {
-        if (proxyHost != null && proxyPort != null) {
+        if (!proxyHost.isBlank() && proxyPort != null) {
             log.info("configuring usage of proxy at `{}:{}` with the following hosts whitelisted (via regex): `{}`",
                     proxyHost, proxyPort, proxyWhitelist);
             client.proxy(proxy -> {
                         var proxyBuilder = proxy.type(ProxyProvider.Proxy.HTTP)
                                 .host(proxyHost)
-                                .port(proxyPort)
-                                .nonProxyHosts(proxyWhitelist);
+                                .port(proxyPort);
 
-                        if (proxyUsername != null && proxyPasswordFile != null) {
+                        if (!proxyWhitelist.isBlank()) {
+                            log.info("configuring whitelist for proxy at `{}:{}`", proxyHost, proxyPort);
+                            proxyBuilder.nonProxyHosts(proxyWhitelist);
+                        } else {
+                            log.info("skipping whitelist configuration for proxy at `{}:{}` since no whitelist " +
+                                    "is configured", proxyHost, proxyPort);
+                        }
+
+                        if (!proxyUsername.isBlank() && !proxyPasswordFile.isBlank()) {
                             try {
                                 log.info("configuring authentication for proxy");
                                 var proxyPassword = Files.readString(Paths.get(proxyPasswordFile));
@@ -114,6 +121,9 @@ public class CommonSpringConfig {
                                 log.error("cannot read password file for proxy at `{}`", proxyPasswordFile, e);
                                 throw new RuntimeException(e);
                             }
+                        } else {
+                            log.info("skipping authentication configuration for proxy at `{}:{}` since no " +
+                                    "credentials are configured", proxyHost, proxyPort);
                         }
                     }
             );
