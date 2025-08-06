@@ -84,21 +84,21 @@ public class CommonSpringConfig {
     @Bean
     HttpClient decoratedHttpClient(@Qualifier("COMMON_NETTY_SSL_CONTEXT") SslContext sslContext) {
         var client = HttpClient.create();
-        decorateClientWithSSLContext(client, sslContext);
-        decorateClientWithProxySettings(client);
+        client = decorateClientWithSSLContext(client, sslContext);
+        client = decorateClientWithProxySettings(client);
 
         return client;
     }
 
-    private void decorateClientWithSSLContext(HttpClient client, SslContext sslContext) {
-        client.secure(t -> t.sslContext(sslContext));
+    private HttpClient decorateClientWithSSLContext(HttpClient client, SslContext sslContext) {
+        return client.secure(t -> t.sslContext(sslContext));
     }
 
-    private void decorateClientWithProxySettings(HttpClient client) {
+    private HttpClient decorateClientWithProxySettings(HttpClient client) {
         if (!proxyHost.isBlank() && proxyPort != null) {
             log.info("configuring usage of proxy at `{}:{}` with the following hosts whitelisted (via regex): `{}`",
                     proxyHost, proxyPort, proxyWhitelist);
-            client.proxy(proxy -> {
+            return client.proxy(proxy -> {
                         var proxyBuilder = proxy.type(ProxyProvider.Proxy.HTTP)
                                 .host(proxyHost)
                                 .port(proxyPort);
@@ -129,6 +129,7 @@ public class CommonSpringConfig {
             );
         } else {
             log.info("skipping proxy configuration due to no specified settings");
+            return client;
         }
     }
 
