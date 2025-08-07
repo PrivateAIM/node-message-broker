@@ -36,6 +36,12 @@ logging:
     org.springframework.web: ${LOG_LEVEL:info}
 
 app:
+  proxy:
+    host: ${PROXY_HOST:}
+    port: ${PROXY_PORT:}
+    whitelist: ${PROXY_WHITELIST:}
+    username: ${PROXY_USERNAME:}
+    passwordFile: ${PROXY_PASSWORD_FILE:}
   auth:
     jwksUrl: ${AUTH_JWKS_URL}
   hub:
