@@ -11,7 +11,7 @@
 
     <groupId>de.privateaim</groupId>
     <artifactId>node-message-broker</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
     <name>node-message-broker</name>
     <description>Message broker for communicating with the central hub service and other node instances.</description>
 
@@ -164,6 +164,27 @@
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
             <version>4.12.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

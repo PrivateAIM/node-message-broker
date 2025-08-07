@@ -1,5 +1,6 @@
 package de.privateaim.node_message_broker.common.hub;
 
+import de.privateaim.node_message_broker.common.HttpRetryConfig;
 import de.privateaim.node_message_broker.common.hub.api.AnalysisNode;
 import de.privateaim.node_message_broker.common.hub.api.HubResponseContainer;
 import de.privateaim.node_message_broker.common.hub.api.Node;
@@ -30,11 +31,11 @@ import static java.util.Objects.requireNonNull;
 public final class HttpHubClient implements HubClient {
 
     private final WebClient authenticatedWebClient;
-    private final HttpHubClientConfig config;
+    private final HttpRetryConfig retryConfig;
 
-    public HttpHubClient(WebClient authenticatedWebClient, HttpHubClientConfig config) {
+    public HttpHubClient(WebClient authenticatedWebClient, HttpRetryConfig retryConfig) {
         this.authenticatedWebClient = requireNonNull(authenticatedWebClient, "authenticated web client must not be null");
-        this.config = requireNonNull(config, "config must not be null");
+        this.retryConfig = requireNonNull(retryConfig, "retry config must not be null");
     }
 
     // TODO: this might use a cache to cut corners and improve performance by avoiding unnecessary round-trips
@@ -59,12 +60,12 @@ public final class HttpHubClient implements HubClient {
                 .bodyToMono(new ParameterizedTypeReference<HubResponseContainer<List<AnalysisNode>>>() {
                 })
                 .map(resp -> resp.data)
-                .retryWhen(Retry.backoff(config.maxRetries(), Duration.ofMillis(config.retryDelayMs()))
+                .retryWhen(Retry.backoff(retryConfig.maxRetries(), Duration.ofMillis(retryConfig.retryDelayMs()))
                         .jitter(0.75)
                         .filter(err -> err instanceof HubCoreServerException)
                         .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) ->
                                 new HubAnalysisNodesNotObtainable("exhausted maximum number of retries of '%d'"
-                                        .formatted(config.maxRetries())))));
+                                        .formatted(retryConfig.maxRetries())))));
     }
 
     // TODO: add cache here! - see spring annotations
@@ -110,11 +111,11 @@ public final class HttpHubClient implements HubClient {
                                 "robot id `%s`".formatted(robotId), e));
                     }
                 })
-                .retryWhen(Retry.backoff(config.maxRetries(), Duration.ofMillis(config.retryDelayMs()))
+                .retryWhen(Retry.backoff(retryConfig.maxRetries(), Duration.ofMillis(retryConfig.retryDelayMs()))
                         .jitter(0.75)
                         .filter(err -> err instanceof HubCoreServerException)
                         .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) ->
                                 new HubNodePublicKeyNotObtainable("exhausted maximum number of retries of '%d'"
-                                        .formatted(config.maxRetries())))));
+                                        .formatted(retryConfig.maxRetries())))));
     }
 }

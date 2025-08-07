@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -65,11 +66,12 @@ public final class MessageService {
             return Mono.error(new NullPointerException("message request must not be null"));
         }
 
-        return getRobotIdsOffAllOtherParticipatingAnalysisNodes(analysisId)
+        return getParticipantsOffAllOtherParticipatingAnalysisNodes(analysisId)
                 .onErrorMap(err -> new AnalysisNodesLookupException("could not look up analysis nodes for analysis `%s`"
                         .formatted(analysisId), err))
-                .flatMap(robotIds -> {
-                    var messages = buildIndividualMessages(analysisId, messageReq.message, robotIds.stream().toList());
+                .flatMap(participants -> {
+                    var participantsRobotIds = participants.stream().map(p -> p.robotId).toList();
+                    var messages = buildIndividualMessages(analysisId, messageReq.message, participantsRobotIds);
                     return sendIndividualMessages(messages);
                 });
     }
@@ -99,13 +101,13 @@ public final class MessageService {
             return Mono.error(new IllegalArgumentException("recipients must not be empty"));
         }
 
-        return getRobotIdsOffAllOtherParticipatingAnalysisNodes(analysisId)
+        return getParticipantsOffAllOtherParticipatingAnalysisNodes(analysisId)
                 .onErrorMap(err -> new AnalysisNodesLookupException("could not look up analysis nodes", err))
-                .flatMap(robotIds -> {
-                    if (robotIds.containsAll(messageReq.recipients)) {
-
+                .flatMap(participants -> {
+                    var participantsNodeIds = participants.stream().map(p -> p.nodeId).toList();
+                    if (participantsNodeIds.containsAll(messageReq.recipients)) {
                         return sendIndividualMessages(buildIndividualMessages(analysisId, messageReq.message,
-                                messageReq.recipients));
+                                mapNodeIdsToRobotIds(participants, messageReq.recipients)));
                     } else {
                         return Mono.error(new InvalidMessageRecipientsException("list of recipients contains at least " +
                                 "one recipients that is not part of the analysis"));
@@ -122,11 +124,11 @@ public final class MessageService {
                 .then(Mono.empty());
     }
 
-    private Mono<Set<String>> getRobotIdsOffAllOtherParticipatingAnalysisNodes(String analysisId) {
+    private Mono<Set<AnalysisParticipant>> getParticipantsOffAllOtherParticipatingAnalysisNodes(String analysisId) {
         return hubClient.fetchAnalysisNodes(analysisId)
                 .map(nodes -> nodes.stream()
-                        .map(n -> n.node.robotId)
-                        .filter(id -> !id.equals(selfRobotId))
+                        .map(n -> new AnalysisParticipant(n.node.id, n.node.robotId))
+                        .filter(participant -> !participant.robotId.equals(selfRobotId))
                         .collect(Collectors.toSet()));
     }
 
@@ -142,5 +144,21 @@ public final class MessageService {
                                 .build())
                         .toList())
                 .onErrorMap(err -> new RuntimeException("could not prepare individual messages", err));
+    }
+
+    private List<String> mapNodeIdsToRobotIds(Set<AnalysisParticipant> participants, List<String> nodeIds) {
+        var nodeIdRobotIdMapping = participants.stream()
+                .map(p -> Map.entry(p.nodeId(), p.robotId()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        return nodeIds.stream()
+                .map(nodeIdRobotIdMapping::get)
+                .toList();
+    }
+
+    private record AnalysisParticipant(
+            String nodeId,
+            String robotId // for internal communication usage
+    ) {
     }
 }

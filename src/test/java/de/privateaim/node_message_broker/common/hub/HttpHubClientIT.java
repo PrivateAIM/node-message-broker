@@ -1,6 +1,7 @@
 package de.privateaim.node_message_broker.common.hub;
 
 import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.http.HttpStatus;
+import de.privateaim.node_message_broker.common.HttpRetryConfig;
 import de.privateaim.node_message_broker.common.hub.api.AnalysisNode;
 import de.privateaim.node_message_broker.common.hub.api.HubResponseContainer;
 import de.privateaim.node_message_broker.common.hub.api.Node;
@@ -50,10 +51,7 @@ public class HttpHubClientIT {
     void setUp() {
         mockWebServer = new MockWebServer();
         var webClient = WebClient.create(mockWebServer.url("/").toString());
-        httpHubClient = new HttpHubClient(webClient, new HttpHubClientConfig.Builder()
-                .withMaxRetries(MAX_RETRIES)
-                .withRetryDelayMs(RETRY_DELAY_MILLIS)
-                .build());
+        httpHubClient = new HttpHubClient(webClient, new HttpRetryConfig(MAX_RETRIES, RETRY_DELAY_MILLIS));
     }
 
     @AfterEach

@@ -37,7 +37,7 @@ public final class DiscoveryController {
         return discoveryService.discoverAllParticipantsOfAnalysis(analysisId)
                 .collectList()
                 .map(participants -> participants.stream()
-                        .map(p -> new ParticipantResponse(p.nodeRobotId(), p.nodeType()))
+                        .map(p -> new ParticipantResponse(p.nodeId(), p.nodeType()))
                         .toList())
                 .map(ResponseEntity::ok)
                 .onErrorMap(AnalysisNodesLookupException.class, err ->
@@ -51,7 +51,7 @@ public final class DiscoveryController {
         }
 
         return discoveryService.discoverSelfInAnalysis(analysisId)
-                .map(p -> new ParticipantResponse(p.nodeRobotId(), p.nodeType()))
+                .map(p -> new ParticipantResponse(p.nodeId(), p.nodeType()))
                 .map(ResponseEntity::ok)
                 .onErrorMap(AnalysisNodesLookupException.class, err ->
                         new ResponseStatusException(HttpStatus.BAD_GATEWAY, err.getMessage(), err))

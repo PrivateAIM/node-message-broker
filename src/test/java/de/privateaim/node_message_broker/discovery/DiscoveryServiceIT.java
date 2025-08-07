@@ -1,8 +1,8 @@
 package de.privateaim.node_message_broker.discovery;
 
 import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.http.HttpStatus;
+import de.privateaim.node_message_broker.common.HttpRetryConfig;
 import de.privateaim.node_message_broker.common.hub.HttpHubClient;
-import de.privateaim.node_message_broker.common.hub.HttpHubClientConfig;
 import de.privateaim.node_message_broker.common.hub.api.AnalysisNode;
 import de.privateaim.node_message_broker.common.hub.api.HubResponseContainer;
 import de.privateaim.node_message_broker.common.hub.api.Node;
@@ -39,10 +39,7 @@ public final class DiscoveryServiceIT {
     void setUp() {
         mockWebServer = new MockWebServer();
         var noAuthWebClient = WebClient.create(mockWebServer.url("/").toString());
-        var hubClientCfg = new HttpHubClientConfig.Builder()
-                .withMaxRetries(0)
-                .withRetryDelayMs(0)
-                .build();
+        var hubClientCfg = new HttpRetryConfig(0, 0);
         var hubClient = Mockito.spy(new HttpHubClient(noAuthWebClient, hubClientCfg));
         discoveryService = new DiscoveryService(hubClient, SELF_ROBOT_ID);
     }
@@ -80,12 +77,12 @@ public final class DiscoveryServiceIT {
             assertEquals(participatingAnalysisNodes.size(), discoveredParticipants.size());
             assertEquals(participatingAnalysisNodes.getFirst().node.type,
                     discoveredParticipants.getFirst().nodeType().getRepresentation());
-            assertEquals(participatingAnalysisNodes.getFirst().node.robotId,
-                    discoveredParticipants.getFirst().nodeRobotId());
+            assertEquals(participatingAnalysisNodes.getFirst().node.id,
+                    discoveredParticipants.getFirst().nodeId());
             assertEquals(participatingAnalysisNodes.getLast().node.type,
                     discoveredParticipants.getLast().nodeType().getRepresentation());
-            assertEquals(participatingAnalysisNodes.getLast().node.robotId,
-                    discoveredParticipants.getLast().nodeRobotId());
+            assertEquals(participatingAnalysisNodes.getLast().node.id,
+                    discoveredParticipants.getLast().nodeId());
         }
 
         @Test
@@ -157,7 +154,7 @@ public final class DiscoveryServiceIT {
                     .setBody(JSON.writeValueAsString(mockedHubResponse)));
 
             StepVerifier.create(discoveryService.discoverSelfInAnalysis(ANALYSIS_ID))
-                    .expectNext(new Participant(SELF_ROBOT_ID, ParticipantType.AGGREGATOR))
+                    .expectNext(new Participant("node-1", SELF_ROBOT_ID, ParticipantType.AGGREGATOR))
                     .verifyComplete();
         }
     }

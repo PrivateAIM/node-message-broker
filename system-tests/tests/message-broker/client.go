@@ -19,7 +19,11 @@ type messageAPI interface {
 	SendBroadcastMessage(analysisId string, message TestMessage) error
 }
 
-type intance interface {
+type healthAPI interface {
+	IsReady() (bool, error)
+}
+
+type instance interface {
 	GetBaseUrl() string
 }
 
@@ -27,11 +31,13 @@ type MessageBrokerClient interface {
 	subscriptionAPI
 	discoveryAPI
 	messageAPI
-	intance
+	healthAPI
+	instance
 }
 
 type messageBrokerClient struct {
 	baseUrl             string
+	managementBaseUrl   string // base url to reach the broker's management server
 	accessTokenAcquirer func() (string, error)
 	httpClient          http.Client
 }
@@ -40,10 +46,11 @@ func (mbc *messageBrokerClient) GetBaseUrl() string {
 	return mbc.baseUrl
 }
 
-func NewMessageBrokerClient(baseUrl string, accessTokenAcquirer func() (string, error)) MessageBrokerClient {
+func NewMessageBrokerClient(baseUrl string, managementBaseUrl string, accessTokenAcquirer func() (string, error)) MessageBrokerClient {
 	return &messageBrokerClient{
 		baseUrl:             baseUrl,
+		managementBaseUrl:   managementBaseUrl,
 		accessTokenAcquirer: accessTokenAcquirer,
-		httpClient:          http.Client{Timeout: time.Duration(1) * time.Second},
+		httpClient:          http.Client{Timeout: time.Duration(300) * time.Second},
 	}
 }

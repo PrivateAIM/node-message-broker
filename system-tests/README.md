@@ -5,6 +5,7 @@ environment. This includes the communication with the Hub but _excludes_ analysi
 simulated.
 
 ## Requirements
+
 The following dependencies need to be satisfied in order to run the tests:
 
 - Golang in version ~1.23.3
@@ -101,12 +102,16 @@ In order to run the tests you have to:
 
 1. build the message broker (if not already built)
     ```shell
-    mvn mvn -B -DskipTests package 
+    mvn -B -DskipTests package 
     ```
-2. run the tests
+2. build the CLI for running system tests
+   ```shell
+   go build -C ./system-tests/tests/
+   ```
+3. run the tests
     ```shell
    ./system-tests/run.sh
     ```
 
-The second step will spin up the whole test environment and subsequently run the tests against it. The script also takes
+The third step will spin up the whole test environment and subsequently run the tests against it. The script also takes
 care of cleaning up any resources in the end.

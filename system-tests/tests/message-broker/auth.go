@@ -24,7 +24,7 @@ type messageBrokerAuthClient struct {
 func NewMessageBrokerAuthClient(baseUrl string, clientId string, clientSecret string) MessageBrokerAuthClient {
 	return &messageBrokerAuthClient{
 		baseUrl:      baseUrl,
-		httpClient:   http.Client{Timeout: time.Duration(1) * time.Second},
+		httpClient:   http.Client{Timeout: time.Duration(300) * time.Second},
 		clientId:     clientId,
 		clientSecret: clientSecret,
 	}
