@@ -146,47 +146,103 @@ class MessageSpringConfig {
             @Qualifier("HUB_AUTHENTICATOR") OIDCAuthenticator hubAuthenticator,
             @Qualifier("HUB_MESSAGE_RECEIVER") MessageReceiver messageReceiver,
             @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET_SECURE_CLIENT") OkHttpClient secureBaseClient) {
+
+        URI messengerUri = URI.create(hubMessengerBaseUrl);
+
+        String socketHost = messengerUri.getScheme() + "://" + messengerUri.getHost();
+        if (messengerUri.getPort() != -1) {
+            socketHost += ":" + messengerUri.getPort();
+        }
+        String socketPath = "/socket.io/";
+        if (messengerUri.getPath() != null && !messengerUri.getPath().isEmpty()
+                && !messengerUri.getPath().equals("/")) {
+            socketPath = messengerUri.getPath() + "/socket.io/";
+        }
+
         IO.Options options = IO.Options.builder()
-                .setPath(null)
+                .setPath(socketPath)
                 .setAuth(new HashMap<>())
+                // Configure robust reconnection: infinite attempts with exponential backoff
+                .setReconnection(true)
+                .setReconnectionAttempts(Integer.MAX_VALUE)
+                .setReconnectionDelay(1000)      // Start with 1 second delay
+                .setReconnectionDelayMax(30000)  // Max 30 seconds between attempts
+                .setRandomizationFactor(0.5)     // Add jitter to prevent thundering herd
                 .build();
 
-        // this is used for SSL backed connections that need to trust additional certificates
+        // this is used for SSL backed connections that need to trust additional
+        // certificates
         options.callFactory = secureBaseClient;
         options.webSocketFactory = secureBaseClient;
 
-        final Socket socket = IO.socket(URI.create(hubMessengerBaseUrl), options);
+        // socket.io expects the base URL to be without the path
+        final Socket socket = IO.socket(URI.create(socketHost), options);
+        log.info("created socket for hub messenger at `{}`", socketHost);
 
         socket.on(Socket.EVENT_CONNECT_ERROR, objects -> {
-            log.error("cannot connect to hub messenger at `{}`", hubMessengerBaseUrl);
+            String errorMsg = objects.length > 0 ? objects[0].toString() : "unknown error";
+            log.error("cannot connect to hub messenger at `{}` - error: {}", hubMessengerBaseUrl, errorMsg);
 
-            // we block here since this is a crucial component
-            var oidcTokenPair = hubAuthenticator.authenticate().block();
-            if (oidcTokenPair == null) {
-                throw new RuntimeException("authentication failed - cannot connect to hub messenger at `%s`"
-                        .formatted(hubMessengerBaseUrl));
+            // Try to refresh the authentication token and reconnect
+            // IMPORTANT: Do not throw exceptions here - it would kill the EventThread and stop reconnection
+            try {
+                var oidcTokenPair = hubAuthenticator.authenticate().block();
+                if (oidcTokenPair != null) {
+                    options.auth.put("token", oidcTokenPair.accessToken().getTokenValue());
+                    log.info("refreshed authentication token, reconnecting to hub messenger");
+                    socket.connect();
+                } else {
+                    log.warn("authentication returned null - will retry on next reconnection attempt");
+                }
+            } catch (Exception e) {
+                log.warn("failed to refresh authentication token - will retry on next reconnection attempt: {}",
+                        e.getMessage());
             }
-            options.auth.put("token", oidcTokenPair.accessToken().getTokenValue());
-
-            log.info("reconnecting to hub messenger at `{}` with new authentication token", hubMessengerBaseUrl);
-            socket.connect();
         });
 
         socket.on(Socket.EVENT_CONNECT,
                 objects -> log.info("connected to hub messenger at `{}`", hubMessengerBaseUrl));
 
-        socket.io().on(Manager.EVENT_RECONNECT_ATTEMPT,
-                objects -> {
-                    log.info("trying to reconnect to hub messenger via socket at `{}", hubMessengerBaseUrl);
-                    // we block here since this is a crucial component
-                    var oidcTokenPair = hubAuthenticator.authenticate().block();
-                    if (oidcTokenPair == null) {
-                        throw new RuntimeException("authentication failed - cannot connect to hub messenger at `%s`"
-                                .formatted(hubMessengerBaseUrl));
-                    }
+        socket.on(Socket.EVENT_DISCONNECT, objects -> {
+            String reason = objects.length > 0 ? objects[0].toString() : "unknown";
+            log.warn("disconnected from hub messenger at `{}` - reason: {}", hubMessengerBaseUrl, reason);
+        });
 
+        socket.io().on(Manager.EVENT_RECONNECT_ATTEMPT, objects -> {
+            int attemptNumber = objects.length > 0 ? (int) objects[0] : -1;
+            log.info("reconnection attempt #{} to hub messenger at `{}`", attemptNumber, hubMessengerBaseUrl);
+
+            // Try to refresh the authentication token before reconnecting
+            // IMPORTANT: Do not throw exceptions here - it would kill the EventThread and stop reconnection
+            try {
+                var oidcTokenPair = hubAuthenticator.authenticate().block();
+                if (oidcTokenPair != null) {
                     options.auth.put("token", oidcTokenPair.accessToken().getTokenValue());
-                });
+                    log.debug("refreshed authentication token for reconnection attempt #{}", attemptNumber);
+                } else {
+                    log.warn("authentication returned null on attempt #{} - will use existing token", attemptNumber);
+                }
+            } catch (Exception e) {
+                log.warn("failed to refresh authentication token on attempt #{} - will use existing token: {}",
+                        attemptNumber, e.getMessage());
+            }
+        });
+
+        socket.io().on(Manager.EVENT_RECONNECT, objects -> {
+            int attemptNumber = objects.length > 0 ? (int) objects[0] : -1;
+            log.info("successfully reconnected to hub messenger at `{}` after {} attempts",
+                    hubMessengerBaseUrl, attemptNumber);
+        });
+
+        socket.io().on(Manager.EVENT_RECONNECT_ERROR, objects -> {
+            String errorMsg = objects.length > 0 ? objects[0].toString() : "unknown error";
+            log.warn("reconnection error to hub messenger at `{}`: {}", hubMessengerBaseUrl, errorMsg);
+        });
+
+        socket.io().on(Manager.EVENT_ERROR, objects -> {
+            String errorMsg = objects.length > 0 ? objects[0].toString() : "unknown error";
+            log.error("socket manager error for hub messenger at `{}`: {}", hubMessengerBaseUrl, errorMsg);
+        });
 
         socket.on(SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER, objects -> {
                     log.debug("processing incoming message");
@@ -195,6 +251,20 @@ class MessageSpringConfig {
                             .subscribe();
                 }
         );
+
+        // Get auth token before first connection attempt to avoid an expected initial failure
+        try {
+            var oidcTokenPair = hubAuthenticator.authenticate().block();
+            if (oidcTokenPair != null) {
+                options.auth.put("token", oidcTokenPair.accessToken().getTokenValue());
+                log.info("obtained initial authentication token for hub messenger");
+            } else {
+                log.warn("initial authentication returned null - will authenticate on first connection error");
+            }
+        } catch (Exception e) {
+            log.warn("failed to obtain initial authentication token - will authenticate on first connection error: {}",
+                    e.getMessage());
+        }
 
         socket.connect();
         return socket;

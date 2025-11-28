@@ -83,7 +83,13 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
                                         "trying to fetch access token", e));
                     }
                 })
-                .doOnError(err -> log.error(err.getMessage(), err))
+                .doOnError(err -> {
+                    if (isNetworkError(err)) {
+                        log.warn("authentication request failed due to network issue: {}", err.getMessage());
+                    } else {
+                        log.error(err.getMessage(), err);
+                    }
+                })
                 .retryWhen(Retry.backoff(retryConfig.maxRetries(), Duration.ofMillis(retryConfig.retryDelayMs()))
                         .jitter(0.75)
                         .filter(err -> err instanceof HubAuthException)
@@ -120,13 +126,27 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
                                         "trying to refresh access token", e));
                     }
                 })
-                .doOnError(err -> log.error(err.getMessage(), err))
+                .doOnError(err -> {
+                    if (isNetworkError(err)) {
+                        log.warn("token refresh request failed due to network issue: {}", err.getMessage());
+                    } else {
+                        log.error(err.getMessage(), err);
+                    }
+                })
                 .retryWhen(Retry.backoff(retryConfig.maxRetries(), Duration.ofMillis(retryConfig.retryDelayMs()))
                         .jitter(0.75)
                         .filter(err -> err instanceof HubAuthException)
                         .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) ->
                                 new HubAccessTokenNotObtainable("exhausted maximum retries of '%d'"
                                         .formatted(retryConfig.maxRetries())))));
+    }
+
+    private boolean isNetworkError(Throwable err) {
+        // Check if this is a network-related error that doesn't need a full stack trace
+        return err instanceof org.springframework.web.reactive.function.client.WebClientRequestException
+                || err instanceof java.net.ConnectException
+                || err instanceof java.net.SocketException
+                || err instanceof java.io.IOException;
     }
 
     private OAuth2AccessToken parseAccessToken(@NonNull String tokenValue) {
