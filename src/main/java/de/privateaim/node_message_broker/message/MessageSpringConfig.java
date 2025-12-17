@@ -90,7 +90,7 @@ class MessageSpringConfig {
                                            @Qualifier("COMMON_TRUST_MANAGER_FACTORY") TrustManagerFactory tmf) {
 
         var clientBuilder = new OkHttpClient.Builder()
-                .readTimeout(1, TimeUnit.MINUTES);
+                .pingInterval(4, TimeUnit.SECONDS);
         decorateClientWithSSLContext(clientBuilder, sslCtx, tmf);
         decorateClientWithProxySettings(clientBuilder);
 
