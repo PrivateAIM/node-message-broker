@@ -1,4 +1,6 @@
 HELP.md
+project_overview.md
+
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -34,3 +36,13 @@ system-tests/environment/node/node-docker-compose.yml
 system-tests/environment/resources/secrets/
 !system-tests/environment/resources/secrets/setup-secrets.sh
 system-tests/tests/mb-test-cli
+system-tests/test-setup/*
+system-tests/curl
+
+message-broker-sink-server
+
+# secrets
+*.crt
+.env*
+privatekey*.pem
+*secret*.txt
