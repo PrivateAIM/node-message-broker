@@ -65,12 +65,7 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
                         .with("secret", clientSecret))
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError,
-                        response -> {
-                            var err = new HubAuthException("could not fetch hub access token");
-
-                            log.warn("retrying token request after failed attempt", err);
-                            return Mono.error(err);
-                        })
+                        response -> Mono.error(new HubAuthException("could not fetch hub access token")))
                 .bodyToMono(HubAuthTokenResponse.class)
                 .flatMap(hubAuthTokenResponse -> {
                     try {
@@ -83,12 +78,15 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
                                         "trying to fetch access token", e));
                     }
                 })
-                .doOnError(err -> log.error(err.getMessage(), err))
+                .doOnError(err -> {
+                    log.error("authentication request failed: {}", err.getMessage());
+                    log.debug("authentication request error details", err);
+                })
                 .retryWhen(Retry.backoff(retryConfig.maxRetries(), Duration.ofMillis(retryConfig.retryDelayMs()))
                         .jitter(0.75)
                         .filter(err -> err instanceof HubAuthException)
-                        .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) ->
-                                new HubAccessTokenNotObtainable("exhausted maximum retries of '%d'"
+                        .onRetryExhaustedThrow(((retryBackoffSpec,
+                                retrySignal) -> new HubAccessTokenNotObtainable("exhausted maximum retries of '%d'"
                                         .formatted(retryConfig.maxRetries())))));
     }
 
@@ -102,12 +100,8 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
                         .with("refresh_token", refreshToken.getTokenValue()))
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError,
-                        response -> {
-                            var err = new HubAuthException("could not fetch new access token using refresh token");
-
-                            log.warn("retrying token refresh request after failed attempt", err);
-                            return Mono.error(err);
-                        })
+                        response -> Mono
+                                .error(new HubAuthException("could not fetch new access token using refresh token")))
                 .bodyToMono(HubAuthTokenResponse.class)
                 .flatMap(hubAuthTokenResponse -> {
                     try {
@@ -120,12 +114,15 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
                                         "trying to refresh access token", e));
                     }
                 })
-                .doOnError(err -> log.error(err.getMessage(), err))
+                .doOnError(err -> {
+                    log.error("token refresh request failed: {}", err.getMessage());
+                    log.debug("token refresh error details", err);
+                })
                 .retryWhen(Retry.backoff(retryConfig.maxRetries(), Duration.ofMillis(retryConfig.retryDelayMs()))
                         .jitter(0.75)
                         .filter(err -> err instanceof HubAuthException)
-                        .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) ->
-                                new HubAccessTokenNotObtainable("exhausted maximum retries of '%d'"
+                        .onRetryExhaustedThrow(((retryBackoffSpec,
+                                retrySignal) -> new HubAccessTokenNotObtainable("exhausted maximum retries of '%d'"
                                         .formatted(retryConfig.maxRetries())))));
     }
 
@@ -210,7 +207,6 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
             return expiresAt;
         }
     }
-
 
     public static Builder builder() {
         return new Builder();
