@@ -24,6 +24,6 @@ public final class Node {
     @JsonProperty("public_key")
     public String publicKey;
 
-    @JsonProperty("robot_id")
-    public String robotId;
+    @JsonProperty("client_id")
+    public String clientId;
 }

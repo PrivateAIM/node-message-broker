@@ -62,7 +62,7 @@ public final class HubMessageDecryptionMiddleware implements Function<ReceiveMes
         }
 
         return Mono.zip(
-                        hubClient.fetchPublicKey(message.sender().nodeRobotId()),
+                        hubClient.fetchPublicKey(message.sender().nodeClientId()),
                         Mono.just(kdfKeyingInfoGenerator.apply(message)))
                 .onErrorMap(err -> new ReceiveMiddlewareException("failed to retrieve key material", err))
                 .flatMap(keyMaterial -> {

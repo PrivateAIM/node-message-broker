@@ -18,16 +18,16 @@ import static java.util.Objects.requireNonNull;
 public final class DiscoveryService {
 
     private final HubClient hubClient;
-    private final String selfRobotId; // robot id of the node running this instance of the message broker
+    private final String selfClientId; // client id of the node running this instance of the message broker
 
     public DiscoveryService(@NotNull HubClient hubClient,
-                            @Qualifier("DISCOVERY_SELF_ROBOT_ID") @NotNull @NotEmpty String selfRobotId) {
+                            @Qualifier("DISCOVERY_SELF_CLIENT_ID") @NotNull @NotEmpty String selfClientId) {
         this.hubClient = requireNonNull(hubClient, "hub client must not be null");
-        requireNonNull(selfRobotId, "self robot id must not be null");
-        if (selfRobotId.isBlank()) {
-            throw new IllegalArgumentException("self robot id must not be blank");
+        requireNonNull(selfClientId, "self client id must not be null");
+        if (selfClientId.isBlank()) {
+            throw new IllegalArgumentException("self client id must not be blank");
         }
-        this.selfRobotId = selfRobotId;
+        this.selfClientId = selfClientId;
     }
 
     /**
@@ -51,7 +51,7 @@ public final class DiscoveryService {
                 .flatMapIterable(analysisNodes -> analysisNodes.stream()
                         .map(analysisNode -> new Participant(
                                 analysisNode.node.id,
-                                analysisNode.node.robotId,
+                                analysisNode.node.clientId,
                                 ParticipantType.fromRepresentation(analysisNode.node.type)
                         )).toList())
                 .switchIfEmpty(Flux.empty());
@@ -78,7 +78,7 @@ public final class DiscoveryService {
                 .collectList()
                 .flatMap(participants -> {
                     var selfParticipants = participants.stream()
-                            .filter(p -> p.robotId().equals(selfRobotId))
+                            .filter(p -> p.clientId().equals(selfClientId))
                             .toList();
 
                     if (selfParticipants.isEmpty()) {
@@ -86,7 +86,7 @@ public final class DiscoveryService {
                                 "does not have any participants yet"));
                     } else if (selfParticipants.size() > 1) {
                         return Mono.error(new DiscoveryConflictException("there is more than one node that would " +
-                                "match the robot id `%s`".formatted(selfRobotId)));
+                                "match the client id `%s`".formatted(selfClientId)));
                     } else {
                         return Mono.just(selfParticipants.getFirst());
                     }

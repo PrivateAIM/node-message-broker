@@ -9,12 +9,12 @@ HUB_API_BASE_URL="http://localhost:3000"
 MASTER_REALM_NAME="master"
 ADMIN_USER_NAME="admin"
 
-ROBOT_A_NAME="system-test-node-a-robot"
-ROBOT_A_SECRET=$(cat "$BASE_DIR"/../secrets/robot-secret-node-a.txt)
-ROBOT_B_NAME="system-test-node-b-robot"
-ROBOT_B_SECRET=$(cat "$BASE_DIR"/../secrets/robot-secret-node-b.txt)
-ROBOT_C_NAME="system-test-node-c-robot"
-ROBOT_C_SECRET=$(cat "$BASE_DIR"/../secrets/robot-secret-node-c.txt)
+CLIENT_A_NAME="system-test-node-a-client"
+CLIENT_A_SECRET=$(cat "$BASE_DIR"/../secrets/client-secret-node-a.txt)
+CLIENT_B_NAME="system-test-node-b-client"
+CLIENT_B_SECRET=$(cat "$BASE_DIR"/../secrets/client-secret-node-b.txt)
+CLIENT_C_NAME="system-test-node-c-client"
+CLIENT_C_SECRET=$(cat "$BASE_DIR"/../secrets/client-secret-node-c.txt)
 
 # PUBLIC KEYS in hex format (expected by the hub)
 NODE_A_PUBLIC_KEY=$(cat "$BASE_DIR"/../secrets/pub-key-node-a.pem | xxd -p | tr -d '\n')
@@ -31,7 +31,7 @@ NODE_C_NAME="system-test-node-c"
 
 # READ POST BODY TEMPLATES --------------------------------------------------------------
 echo -n "Reading resource setup templates..."
-ROBOT_ACCOUNT_SETUP_TEMPLATE=$(cat "${BASE_DIR}/robot-account-setup-template.json")
+CLIENT_ACCOUNT_SETUP_TEMPLATE=$(cat "${BASE_DIR}/client-account-setup-template.json")
 PROJECT_SETUP_TEMPLATE=$(cat "${BASE_DIR}/project-setup-template.json")
 ANALYSIS_SETUP_TEMPLATE=$(cat "${BASE_DIR}/analysis-setup-template.json")
 NODE_SETUP_TEMPLATE=$(cat "${BASE_DIR}/node-setup-template.json")
@@ -85,67 +85,67 @@ else
 fi
 
 
-# SET UP ROBOT ACCOUNTS -----------------------------------------------------------------
-ROBOT_A_SETUP=$(echo "${ROBOT_ACCOUNT_SETUP_TEMPLATE}" |\
-    sed "s#<ROBOT_SECRET>#${ROBOT_A_SECRET}#" |\
-    sed "s#<ROBOT_NAME>#${ROBOT_A_NAME}#" |\
+# SET UP CLIENT ACCOUNTS -----------------------------------------------------------------
+CLIENT_A_SETUP=$(echo "${CLIENT_ACCOUNT_SETUP_TEMPLATE}" |\
+    sed "s#<CLIENT_SECRET>#${CLIENT_A_SECRET}#" |\
+    sed "s#<CLIENT_NAME>#${CLIENT_A_NAME}#" |\
     sed "s#<REALM_ID>#${MASTER_REALM_ID}#")
 
-ROBOT_B_SETUP=$(echo "${ROBOT_ACCOUNT_SETUP_TEMPLATE}" |\
-    sed "s#<ROBOT_SECRET>#${ROBOT_B_SECRET}#" |\
-    sed "s#<ROBOT_NAME>#${ROBOT_B_NAME}#" |\
+CLIENT_B_SETUP=$(echo "${CLIENT_ACCOUNT_SETUP_TEMPLATE}" |\
+    sed "s#<CLIENT_SECRET>#${CLIENT_B_SECRET}#" |\
+    sed "s#<CLIENT_NAME>#${CLIENT_B_NAME}#" |\
     sed "s#<REALM_ID>#${MASTER_REALM_ID}#")
 
-ROBOT_C_SETUP=$(echo "${ROBOT_ACCOUNT_SETUP_TEMPLATE}" |\
-    sed "s#<ROBOT_SECRET>#${ROBOT_C_SECRET}#" |\
-    sed "s#<ROBOT_NAME>#${ROBOT_C_NAME}#" |\
+CLIENT_C_SETUP=$(echo "${CLIENT_ACCOUNT_SETUP_TEMPLATE}" |\
+    sed "s#<CLIENT_SECRET>#${CLIENT_C_SECRET}#" |\
+    sed "s#<CLIENT_NAME>#${CLIENT_C_NAME}#" |\
     sed "s#<REALM_ID>#${MASTER_REALM_ID}#")
 
-echo -n "Creating robot account a..."
-ROBOT_A_ID=$(curl -s --fail-with-body \
+echo -n "Creating client account a..."
+CLIENT_A_ID=$(curl -s --fail-with-body \
     -H "Authorization: Bearer ${AUTH_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d "${ROBOT_A_SETUP}" \
-    -X POST "${HUB_AUTH_BASE_URL}/robots" |\
+    -d "${CLIENT_A_SETUP}" \
+    -X POST "${HUB_AUTH_BASE_URL}/clients" |\
     jq -r '.id')
-if [ -z "${ROBOT_A_ID}" ]; then
+if [ -z "${CLIENT_A_ID}" ]; then
     echo "FAILED"
     exit 1
 else
     echo "OK"
 fi
 
-echo -n "Creating robot account b..."
-ROBOT_B_ID=$(curl -s --fail-with-body \
+echo -n "Creating client account b..."
+CLIENT_B_ID=$(curl -s --fail-with-body \
     -H "Authorization: Bearer ${AUTH_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d "${ROBOT_B_SETUP}" \
-    -X POST "${HUB_AUTH_BASE_URL}/robots" |\
+    -d "${CLIENT_B_SETUP}" \
+    -X POST "${HUB_AUTH_BASE_URL}/clients" |\
     jq -r '.id')
-if [ -z "${ROBOT_B_ID}" ]; then
+if [ -z "${CLIENT_B_ID}" ]; then
     echo "FAILED"
     exit 1
 else
     echo "OK"
 fi
 
-echo -n "Creating robot account c..."
-ROBOT_C_ID=$(curl -s --fail-with-body \
+echo -n "Creating client account c..."
+CLIENT_C_ID=$(curl -s --fail-with-body \
     -H "Authorization: Bearer ${AUTH_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d "${ROBOT_C_SETUP}" \
-    -X POST "${HUB_AUTH_BASE_URL}/robots" |\
+    -d "${CLIENT_C_SETUP}" \
+    -X POST "${HUB_AUTH_BASE_URL}/clients" |\
     jq -r '.id')
-if [ -z "${ROBOT_C_ID}" ]; then
+if [ -z "${CLIENT_C_ID}" ]; then
     echo "FAILED"
     exit 1
 else
     echo "OK"
 fi
 
-echo "ROBOT_A_ID: ${ROBOT_A_ID}"
-echo "ROBOT_B_ID: ${ROBOT_B_ID}"
-echo "ROBOT_C_ID: ${ROBOT_C_ID}"
+echo "CLIENT_A_ID: ${CLIENT_A_ID}"
+echo "CLIENT_B_ID: ${CLIENT_B_ID}"
+echo "CLIENT_C_ID: ${CLIENT_C_ID}"
 
 # SET UP PROJECTS -----------------------------------------------------------------------
 PROJECT_SETUP=$(echo "${PROJECT_SETUP_TEMPLATE}" |\
@@ -196,19 +196,19 @@ echo "ANALYSIS ID: ${ANALYSIS_ID}"
 # SET UP NODES --------------------------------------------------------------------------
 NODE_A_SETUP=$(echo "${NODE_SETUP_TEMPLATE}" |\
     sed "s#<NODE_NAME>#${NODE_A_NAME}#" |\
-    sed "s#<ROBOT_ID>#${ROBOT_A_ID}#" |\
+    sed "s#<CLIENT_ID>#${CLIENT_A_ID}#" |\
     sed "s#<REALM_ID>#${MASTER_REALM_ID}#" |\
     sed "s#<PUBLIC_KEY>#${NODE_A_PUBLIC_KEY}#")
 
 NODE_B_SETUP=$(echo "${NODE_SETUP_TEMPLATE}" |\
     sed "s#<NODE_NAME>#${NODE_B_NAME}#" |\
-    sed "s#<ROBOT_ID>#${ROBOT_B_ID}#" |\
+    sed "s#<CLIENT_ID>#${CLIENT_B_ID}#" |\
     sed "s#<REALM_ID>#${MASTER_REALM_ID}#" |\
     sed "s#<PUBLIC_KEY>#${NODE_B_PUBLIC_KEY}#")
 
 NODE_C_SETUP=$(echo "${NODE_SETUP_TEMPLATE}" |\
     sed "s#<NODE_NAME>#${NODE_C_NAME}#" |\
-    sed "s#<ROBOT_ID>#${ROBOT_C_ID}#" |\
+    sed "s#<CLIENT_ID>#${CLIENT_C_ID}#" |\
     sed "s#<REALM_ID>#${MASTER_REALM_ID}#" |\
     sed "s#<PUBLIC_KEY>#${NODE_C_PUBLIC_KEY}#")
 
@@ -382,7 +382,7 @@ echo "ANALYSIS NODE A ID: ${ANALYSIS_NODE_A_ID}"
 echo "ANALYSIS NODE B ID: ${ANALYSIS_NODE_B_ID}"
 echo "ANALYSIS NODE C ID: ${ANALYSIS_NODE_C_ID}"
 
-echo -n "$ROBOT_A_ID" > "$BASE_DIR"/robot-id-node-a.txt
-echo -n "$ROBOT_B_ID" > "$BASE_DIR"/robot-id-node-b.txt
-echo -n "$ROBOT_C_ID" > "$BASE_DIR"/robot-id-node-c.txt
+echo -n "$CLIENT_A_ID" > "$BASE_DIR"/client-id-node-a.txt
+echo -n "$CLIENT_B_ID" > "$BASE_DIR"/client-id-node-b.txt
+echo -n "$CLIENT_C_ID" > "$BASE_DIR"/client-id-node-c.txt
 echo -n "$ANALYSIS_ID" > "$BASE_DIR"/analysis-id.txt

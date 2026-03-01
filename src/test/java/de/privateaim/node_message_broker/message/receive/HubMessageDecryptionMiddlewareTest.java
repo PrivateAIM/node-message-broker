@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public final class HubMessageDecryptionMiddlewareTest {
 
-    private static final UUID SENDER_ROBOT_ID = UUID.fromString("5242c219-4eeb-4b60-95a9-e95fab73714c");
+    private static final UUID SENDER_CLIENT_ID = UUID.fromString("5242c219-4eeb-4b60-95a9-e95fab73714c");
     private static final UUID MESSAGE_ID = UUID.fromString("f691940a-e5ce-483c-80d7-17b9e4f682fe");
     private static final String ANALYSIS_ID = "analysis-123";
     private static final String TEST_MESSAGE_PAYLOAD = "{\"foo\": \"bar\"}";
@@ -77,7 +77,7 @@ public final class HubMessageDecryptionMiddlewareTest {
     @Test
     public void failsIfSenderPublicKeyCannotGetFetched() {
         var testMessage = ReceiveMessage.builder()
-                .sentFrom(new ReceiveMessageSender(SENDER_ROBOT_ID.toString()))
+                .sentFrom(new ReceiveMessageSender(SENDER_CLIENT_ID.toString()))
                 .withPayload("does-not-matter".getBytes())
                 .inContext(new ReceiveMessageContext(
                         MESSAGE_ID,
@@ -86,7 +86,7 @@ public final class HubMessageDecryptionMiddlewareTest {
 
         Mockito.doReturn(Mono.error(new HubNodePublicKeyNotObtainable("error")))
                 .when(hubClient)
-                .fetchPublicKey(SENDER_ROBOT_ID.toString());
+                .fetchPublicKey(SENDER_CLIENT_ID.toString());
 
         StepVerifier.create(middleware.apply(testMessage))
                 .expectError(ReceiveMiddlewareException.class)
@@ -105,7 +105,7 @@ public final class HubMessageDecryptionMiddlewareTest {
                 .encryptMessage(derivedSymmetricKey, TEST_MESSAGE_PAYLOAD.getBytes());
 
         var encryptedTestMessage = ReceiveMessage.builder()
-                .sentFrom(new ReceiveMessageSender(SENDER_ROBOT_ID.toString()))
+                .sentFrom(new ReceiveMessageSender(SENDER_CLIENT_ID.toString()))
                 .withPayload(encryptedMessagePayload)
                 .inContext(new ReceiveMessageContext(
                         MESSAGE_ID,
@@ -113,7 +113,7 @@ public final class HubMessageDecryptionMiddlewareTest {
                 .build();
 
         var expectedPlaintextTestMessage = ReceiveMessage.builder()
-                .sentFrom(new ReceiveMessageSender(SENDER_ROBOT_ID.toString()))
+                .sentFrom(new ReceiveMessageSender(SENDER_CLIENT_ID.toString()))
                 .withPayload(TEST_MESSAGE_PAYLOAD.getBytes())
                 .inContext(new ReceiveMessageContext(
                         MESSAGE_ID,
@@ -122,7 +122,7 @@ public final class HubMessageDecryptionMiddlewareTest {
 
         Mockito.doReturn(Mono.just((ECPublicKey) senderKeyPair.getPublic()))
                 .when(hubClient)
-                .fetchPublicKey(SENDER_ROBOT_ID.toString());
+                .fetchPublicKey(SENDER_CLIENT_ID.toString());
 
         StepVerifier.create(middleware.apply(encryptedTestMessage))
                 .assertNext(decryptedMessage ->

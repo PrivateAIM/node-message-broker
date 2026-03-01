@@ -36,12 +36,12 @@ _The hub services will NEVER be requested!_
 
 1. Ensure having a registered node with a public/private key configured (__do not use the one you would use for
    production!__)
-2. Copy the node's robot secret to `./config/secrets/robot-secret-node.txt`
+2. Copy the node's client secret to `./config/secrets/client-secret-node.txt`
 3. Copy the node's private key to `./config/secrets/priv-key-node.pem`
 4. (Optional) Remove trailing newlines from the two files by running
 
 ```shell
-truncate -s -1 ./config/secrets/robot-secret-node.txt ./config/secrets/priv-key-node.pem 
+truncate -s -1 ./config/secrets/client-secret-node.txt ./config/secrets/priv-key-node.pem 
 ```
 
 5. Create self-signed certificates by running `./create-cert.sh`

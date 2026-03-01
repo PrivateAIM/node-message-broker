@@ -19,7 +19,7 @@ public final class DiscoveryServiceTest {
     @BeforeAll
     static void setUp() {
         mockedHubClient = Mockito.mock(HubClient.class);
-        discoveryService = new DiscoveryService(mockedHubClient, "robot-123");
+        discoveryService = new DiscoveryService(mockedHubClient, "client-123");
     }
 
     @AfterEach

@@ -42,13 +42,13 @@ echo "### Setting up Hub resources for test"
 sh "$BASE_DIR"/resources/hub/setup-hub-resources.sh
 
 echo "### Setting up Node resources for test"
-robot_id_node_a=$(cat "$BASE_DIR"/resources/hub/robot-id-node-a.txt)
-robot_id_node_b=$(cat "$BASE_DIR"/resources/hub/robot-id-node-b.txt)
-robot_id_node_c=$(cat "$BASE_DIR"/resources/hub/robot-id-node-c.txt)
+client_id_node_a=$(cat "$BASE_DIR"/resources/hub/client-id-node-a.txt)
+client_id_node_b=$(cat "$BASE_DIR"/resources/hub/client-id-node-b.txt)
+client_id_node_c=$(cat "$BASE_DIR"/resources/hub/client-id-node-c.txt)
 cat "$BASE_DIR"/node/node-docker-compose.tpl.yml |\
-  sed "s#<ROBOT_ID_NODE_A>#${robot_id_node_a}#" |\
-  sed "s#<ROBOT_ID_NODE_B>#${robot_id_node_b}#" |\
-  sed "s#<ROBOT_ID_NODE_C>#${robot_id_node_c}#" > "$BASE_DIR"/node/node-docker-compose.yml |
+  sed "s#<CLIENT_ID_NODE_A>#${client_id_node_a}#" |\
+  sed "s#<CLIENT_ID_NODE_B>#${client_id_node_b}#" |\
+  sed "s#<CLIENT_ID_NODE_C>#${client_id_node_c}#" > "$BASE_DIR"/node/node-docker-compose.yml |
   docker compose -f "$BASE_DIR"/node/node-docker-compose.yml up --build -d
 
 echo "### Waiting for Node auth component (Keycloak) to enter 'healthy' state"

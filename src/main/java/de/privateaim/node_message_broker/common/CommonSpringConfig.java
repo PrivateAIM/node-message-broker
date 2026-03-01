@@ -41,11 +41,11 @@ public class CommonSpringConfig {
     @Value("${app.hub.auth.baseUrl}")
     private String hubAuthBaseUrl;
 
-    @Value("${app.hub.auth.robotId}")
-    private String hubAuthRobotId;
+    @Value("${app.hub.auth.clientId}")
+    private String hubAuthClientId;
 
-    @Value("${app.hub.auth.robotSecretFile}")
-    private String hubAuthRobotSecretFile;
+    @Value("${app.hub.auth.clientSecretFile}")
+    private String hubAuthClientSecretFile;
 
     @Value("${app.proxy.host}")
     private String proxyHost;
@@ -62,16 +62,16 @@ public class CommonSpringConfig {
     @Value("${app.proxy.passwordFile}")
     private String proxyPasswordFile;
 
-    @Qualifier("HUB_AUTH_ROBOT_SECRET")
+    @Qualifier("HUB_AUTH_CLIENT_SECRET")
     @Bean
     public String hubAuthRobotSecret() throws IOException {
-        return new String(ConfigurationUtil.readExternalFileContent(hubAuthRobotSecretFile));
+        return new String(ConfigurationUtil.readExternalFileContent(hubAuthClientSecretFile));
     }
 
-    @Qualifier("HUB_AUTH_ROBOT_ID")
+    @Qualifier("HUB_AUTH_CLIENT_ID")
     @Bean
-    public String hubAuthRobotId() {
-        return hubAuthRobotId;
+    public String hubAuthClientId() {
+        return hubAuthClientId;
     }
 
     @Qualifier("HUB_EXCHANGE_RETRY_CONFIG")
@@ -194,14 +194,14 @@ public class CommonSpringConfig {
     OIDCAuthenticator hubAuthenticator(
             @Qualifier("HUB_AUTH_WEB_CLIENT") WebClient webClient,
             @Qualifier("HUB_EXCHANGE_RETRY_CONFIG") HttpRetryConfig retryConfig,
-            @Qualifier("HUB_AUTH_ROBOT_ID") String hubAuthRobotId,
-            @Qualifier("HUB_AUTH_ROBOT_SECRET") String hubAuthRobotSecret,
+            @Qualifier("HUB_AUTH_CLIENT_ID") String hubAuthClientId,
+            @Qualifier("HUB_AUTH_CLIENT_SECRET") String hubAuthRobotSecret,
             @Qualifier("HUB_JSON_MAPPER") ObjectMapper jsonMapper
     ) {
         return HubOIDCAuthenticator.builder()
                 .usingWebClient(webClient)
                 .withRetryConfig(retryConfig)
-                .withAuthCredentials(hubAuthRobotId, hubAuthRobotSecret)
+                .withAuthCredentials(hubAuthClientId, hubAuthRobotSecret)
                 .withJsonDecoder(jsonMapper)
                 .build();
     }

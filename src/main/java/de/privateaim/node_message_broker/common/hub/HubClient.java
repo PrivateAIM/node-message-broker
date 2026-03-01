@@ -22,8 +22,8 @@ public interface HubClient {
     /**
      * Fetches the public key of a node identified by its ID.
      *
-     * @param nodeRobotId unique identifier of a node's robot
+     * @param nodeClientId unique identifier of a node's client
      * @return The node's public key.
      */
-    Mono<ECPublicKey> fetchPublicKey(String nodeRobotId);
+    Mono<ECPublicKey> fetchPublicKey(String nodeClientId);
 }

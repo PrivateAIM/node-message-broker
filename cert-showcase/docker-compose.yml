@@ -46,7 +46,7 @@ services:
     restart: always
     secrets:
       - priv-key-node.pem
-      - robot-secret-node.txt
+      - client-secret-node.txt
     # The following does NOT work in temurin since they are using a 2-step process which
     # itself alters system resources and thus requires root permission.
     #volumes:
@@ -62,8 +62,8 @@ services:
     environment:
       AUTH_JWKS_URL: "http://localhost:18080/realms/privateaim/protocol/openid-connect/certs"
       HUB_AUTH_BASE_URL: "https://auth.privateaim.internal"
-      HUB_AUTH_ROBOT_ID: "ce84b6a8-df3d-451b-8411-4fb57570c47a"
-      HUB_AUTH_ROBOT_SECRET_FILE: /run/secrets/robot-secret-node.txt
+      HUB_AUTH_CLIENT_ID: "ce84b6a8-df3d-451b-8411-4fb57570c47a"
+      HUB_AUTH_CLIENT_SECRET_FILE: /run/secrets/client-secret-node.txt
       HUB_BASE_URL: "https://core.privateaim.internal"
       HUB_MESSENGER_BASE_URL: "https://messenger.privateaim.internal"
       SECURITY_NODE_PRIVATE_ECDH_KEY_FILE: /run/secrets/priv-key-node.pem
@@ -103,5 +103,5 @@ services:
 secrets:
   priv-key-node.pem:
     file: ./config/secrets/priv-key-node.pem
-  robot-secret-node.txt:
-    file: ./config/secrets/robot-secret-node.txt
+  client-secret-node.txt:
+    file: ./config/secrets/client-secret-node.txt

@@ -70,33 +70,33 @@ public final class HttpHubClient implements HubClient {
 
     // TODO: add cache here! - see spring annotations
     @Override
-    public Mono<ECPublicKey> fetchPublicKey(String robotId) {
+    public Mono<ECPublicKey> fetchPublicKey(String clientId) {
         return authenticatedWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/nodes")
-                        .queryParam("filter[robot_id]", robotId)
+                        .queryParam("filter[client_id]", clientId)
                         .build()
                 )
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError,
                         response -> {
-                            var err = new HubCoreServerException(("could not fetch public key for node with robot id" +
-                                    " `%s` from hub").formatted(robotId));
+                            var err = new HubCoreServerException(("could not fetch public key for node with client id" +
+                                    " `%s` from hub").formatted(clientId));
 
-                            log.warn("retrying to request public key for node with robot id `{}` from hub after" +
-                                    " failed attempt", robotId, err);
+                            log.warn("retrying to request public key for node with client id `{}` from hub after" +
+                                    " failed attempt", clientId, err);
                             return Mono.error(err);
                         })
                 .bodyToMono(new ParameterizedTypeReference<HubResponseContainer<List<Node>>>() {
                 })
                 .flatMap(resp -> {
                     if (resp.data.size() != 1) {
-                        return Mono.error(new NoMatchingNodeFoundException("cannot find node with robot id `%s`"
-                                .formatted(robotId)));
+                        return Mono.error(new NoMatchingNodeFoundException("cannot find node with client id `%s`"
+                                .formatted(clientId)));
                     }
                     if (resp.data.getFirst().publicKey == null) {
-                        return Mono.error(new NoPublicKeyException("node with robot id `%s` has no public key set"
-                                .formatted(robotId)));
+                        return Mono.error(new NoPublicKeyException("node with client id `%s` has no public key set"
+                                .formatted(clientId)));
                     }
                     return Mono.just(Hex.decode(resp.data.getFirst().publicKey.getBytes()));
                 })
@@ -108,7 +108,7 @@ public final class HttpHubClient implements HubClient {
                         return Mono.just((ECPublicKey) new JcaPEMKeyConverter().getPublicKey(key));
                     } catch (IOException e) {
                         return Mono.error(new MalformedPublicKeyException("failed to read public key from node with " +
-                                "robot id `%s`".formatted(robotId), e));
+                                "client id `%s`".formatted(clientId), e));
                     }
                 })
                 .retryWhen(Retry.backoff(retryConfig.maxRetries(), Duration.ofMillis(retryConfig.retryDelayMs()))

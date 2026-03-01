@@ -48,8 +48,8 @@ app:
     baseUrl: ${HUB_BASE_URL}
     auth:
       baseUrl: ${HUB_AUTH_BASE_URL}
-      robotId: ${HUB_AUTH_ROBOT_ID}
-      robotSecretFile: ${HUB_AUTH_ROBOT_SECRET_FILE}
+      clientId: ${HUB_AUTH_CLIENT_ID}
+      clientSecretFile: ${HUB_AUTH_CLIENT_SECRET_FILE}
     messenger:
       baseUrl: ${HUB_MESSENGER_BASE_URL}
   security:

@@ -3,8 +3,8 @@
 # Mandatory environment variables:
 #
 # - AUTH_JWKS_URL
-# - HUB_AUTH_ROBOT_ID
-# - ROBOT_SECRET
+# - HUB_AUTH_CLIENT_ID
+# - CLIENT_SECRET
 # - NODE_PRIVATE_KEY
 # - NODE_MESSAGE_BROKER_HOST
 # - NAMESPACE
@@ -17,13 +17,13 @@
 
 BASE_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit 1 ; pwd -P )"
 
-if [[ -z "${AUTH_JWKS_URL}" || -z "${HUB_AUTH_ROBOT_ID}" || -z "${ROBOT_SECRET}" || -z "${NODE_PRIVATE_KEY}" || -z "${NODE_MESSAGE_BROKER_HOST}" || -z "${NAMESPACE}" ]]; then
+if [[ -z "${AUTH_JWKS_URL}" || -z "${HUB_AUTH_CLIENT_ID}" || -z "${CLIENT_SECRET}" || -z "${NODE_PRIVATE_KEY}" || -z "${NODE_MESSAGE_BROKER_HOST}" || -z "${NAMESPACE}" ]]; then
     echo "One or more mandatory environment variables are not set!"
     echo "Mandatory environment variables are:"
     echo ""
     echo " - AUTH_JWKS_URL"
-    echo " - HUB_AUTH_ROBOT_ID"
-    echo " - ROBOT_SECRET"
+    echo " - HUB_AUTH_CLIENT_ID"
+    echo " - CLIENT_SECRET"
     echo " - NODE_PRIVATE_KEY"
     echo " - NODE_MESSAGE_BROKER_HOST"
     echo " - NAMESPACE"
@@ -51,7 +51,7 @@ checkSuccessOrFailWithCode $? 3
 
 echo -n "Preparing broker deployment..."
 sed -i  -e "s#<AUTH_JWKS_URL>#${AUTH_JWKS_URL}#" \
-        -e "s#<HUB_AUTH_ROBOT_ID>#${HUB_AUTH_ROBOT_ID}#" \
+        -e "s#<HUB_AUTH_CLIENT_ID>#${HUB_AUTH_CLIENT_ID}#" \
         -e "s#<HUB_AUTH_BASE_URL>#${HUB_AUTH_BASE_URL:-"https://auth.privateaim.dev"}#" \
         -e "s#<HUB_BASE_URL>#${HUB_BASE_URL:-"https://core.privateaim.dev"}#" \
         -e "s#<HUB_MESSENGER_BASE_URL>#${HUB_MESSENGER_BASE_URL:-"https://messenger.privateaim.dev"}#" \
@@ -59,7 +59,7 @@ sed -i  -e "s#<AUTH_JWKS_URL>#${AUTH_JWKS_URL}#" \
 checkSuccessOrFailWithCode $? 4
 
 echo -n "Preparing hub auth secret..."
-sed -i  -e "s#<ROBOT_SECRET>#${ROBOT_SECRET}#" \
+sed -i  -e "s#<CLIENT_SECRET>#${CLIENT_SECRET}#" \
         "${WORK_DIR}/hub-auth-secret.yml"
 checkSuccessOrFailWithCode $? 5
 

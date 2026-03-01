@@ -29,7 +29,7 @@ public final class DiscoveryServiceIT {
 
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String ANALYSIS_ID = "ana-123";
-    private static final String SELF_ROBOT_ID = "robot-1";
+    private static final String SELF_CLIENT_ID = "client-1";
 
     private MockWebServer mockWebServer;
 
@@ -41,7 +41,7 @@ public final class DiscoveryServiceIT {
         var noAuthWebClient = WebClient.create(mockWebServer.url("/").toString());
         var hubClientCfg = new HttpRetryConfig(0, 0);
         var hubClient = Mockito.spy(new HttpHubClient(noAuthWebClient, hubClientCfg));
-        discoveryService = new DiscoveryService(hubClient, SELF_ROBOT_ID);
+        discoveryService = new DiscoveryService(hubClient, SELF_CLIENT_ID);
     }
 
     @Nested
@@ -59,8 +59,8 @@ public final class DiscoveryServiceIT {
         @Test
         void returnsParticipatingAnalysisNodes() throws JsonProcessingException {
             var participatingAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "some-key", "robot-1")),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "some-key", "robot-2"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "some-key", "client-1")),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "some-key", "client-2"))
             );
             var mockedHubResponse = new HubResponseContainer<>(participatingAnalysisNodes);
 
@@ -112,10 +112,10 @@ public final class DiscoveryServiceIT {
         }
 
         @Test
-        void failsIfMultipleAnalysisNodesShareOneRobotId() throws JsonProcessingException {
+        void failsIfMultipleAnalysisNodesShareOneClientId() throws JsonProcessingException {
             var participatingAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "some-key", SELF_ROBOT_ID)),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "some-key", SELF_ROBOT_ID))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "some-key", SELF_CLIENT_ID)),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "some-key", SELF_CLIENT_ID))
             );
             var mockedHubResponse = new HubResponseContainer<>(participatingAnalysisNodes);
 
@@ -144,8 +144,8 @@ public final class DiscoveryServiceIT {
         @Test
         void returnsSelfDiscoveredParticipatingAnalysisNode() throws JsonProcessingException {
             var participatingAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "aggregator", "some-key", SELF_ROBOT_ID)),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "some-key", "robot-123"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "aggregator", "some-key", SELF_CLIENT_ID)),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "some-key", "client-123"))
             );
             var mockedHubResponse = new HubResponseContainer<>(participatingAnalysisNodes);
 
@@ -154,7 +154,7 @@ public final class DiscoveryServiceIT {
                     .setBody(JSON.writeValueAsString(mockedHubResponse)));
 
             StepVerifier.create(discoveryService.discoverSelfInAnalysis(ANALYSIS_ID))
-                    .expectNext(new Participant("node-1", SELF_ROBOT_ID, ParticipantType.AGGREGATOR))
+                    .expectNext(new Participant("node-1", SELF_CLIENT_ID, ParticipantType.AGGREGATOR))
                     .verifyComplete();
         }
     }

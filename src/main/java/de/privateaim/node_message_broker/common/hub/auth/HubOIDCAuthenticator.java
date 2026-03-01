@@ -40,7 +40,7 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
     private final String clientSecret;
 
     private static final String TOKEN_PATH = "/token";
-    private static final String GRANT_TYPE_AUTHENTICATE = "robot_credentials";
+    private static final String GRANT_TYPE_AUTHENTICATE = "client_credentials";
     private static final String GRANT_TYPE_REFRESH_TOKEN = "refresh_token";
 
     private static final String JWT_CLAIM__ISSUED_AT = "iat";
@@ -61,8 +61,8 @@ public final class HubOIDCAuthenticator implements OIDCAuthenticator {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .accept(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromFormData("grant_type", GRANT_TYPE_AUTHENTICATE)
-                        .with("id", clientId)
-                        .with("secret", clientSecret))
+                        .with("client_id", clientId)
+                        .with("client_secret", clientSecret))
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError,
                         response -> Mono.error(new HubAuthException("could not fetch hub access token")))

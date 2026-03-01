@@ -57,14 +57,14 @@ public final class HubMessageEmitter implements MessageEmitter<EmitMessage> {
      */
     @Override
     public Mono<Void> emitMessage(EmitMessage message) {
-        log.info("emitting message `{}` to node `{}`", message.context().messageId(), message.recipient().nodeRobotId());
+        log.info("emitting message `{}` to node `{}`", message.context().messageId(), message.recipient().nodeClientId());
 
         return generateMiddlewareStack()
                 .apply(message)
                 .onErrorMap(err ->
                         new EmitMessageException("failed to apply middlewares before emitting message", err))
                 .map(preprocessedMessage -> new OutgoingHubMessage(
-                        List.of(new HubMessageRecipient("robot", preprocessedMessage.recipient().nodeRobotId())),
+                        List.of(new HubMessageRecipient("client", preprocessedMessage.recipient().nodeClientId())),
                         new String(preprocessedMessage.payload()),
                         new HubMessageMetadata(
                                 preprocessedMessage.context().messageId(),

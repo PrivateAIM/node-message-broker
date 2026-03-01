@@ -89,11 +89,11 @@ This requires the following resources to be present on the Hub side:
 - analysis node information (for every node instance)
 - project node information (for every node instance)
 - project information
-- robot account information
+- client account information
 
 ### Secrets
 
-Required secrets will be dynamically created on every run. This includes key pairs as well as credentials for each robot
+Required secrets will be dynamically created on every run. This includes key pairs as well as credentials for each client
 account associated with a single node instance.
 
 ## Running Tests

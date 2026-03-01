@@ -48,10 +48,10 @@ spec:
               value: <HUB_BASE_URL>
             - name: HUB_AUTH_BASE_URL
               value: <HUB_AUTH_BASE_URL>
-            - name: HUB_AUTH_ROBOT_ID
-              value: <HUB_AUTH_ROBOT_ID>
-            - name: HUB_AUTH_ROBOT_SECRET_FILE
-              value: "/tmp/robot-secret.txt"
+            - name: HUB_AUTH_CLIENT_ID
+              value: <HUB_AUTH_CLIENT_ID>
+            - name: HUB_AUTH_CLIENT_SECRET_FILE
+              value: "/tmp/client-secret.txt"
             - name: SECURITY_NODE_PRIVATE_ECDH_KEY_FILE
               value: "/tmp/private-key.pem"
           volumeMounts:
@@ -59,9 +59,9 @@ spec:
               name: private-key-file
               subPath: node-private-key
               readOnly: true
-            - mountPath: "/tmp/robot-secret.txt"
-              name: robot-secret-file
-              subPath: robot-secret
+            - mountPath: "/tmp/client-secret.txt"
+              name: client-secret-file
+              subPath: client-secret
               readOnly: true
           resources:
             requests:
@@ -89,10 +89,10 @@ spec:
             items:
               - key: node-private-key
                 path: node-private-key
-        - name: robot-secret-file
+        - name: client-secret-file
           secret:
             secretName: hub-auth
             items:
-              - key: robot-secret
-                path: robot-secret
+              - key: client-secret
+                path: client-secret
 

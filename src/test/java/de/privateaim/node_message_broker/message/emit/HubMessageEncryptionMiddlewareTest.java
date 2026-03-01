@@ -31,11 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(MockitoExtension.class)
 public final class HubMessageEncryptionMiddlewareTest {
 
-    private static final UUID RECEIVER_NODE_ROBOT_ID = UUID.fromString("f691940a-e5ce-483c-80d7-17b9e4f682fe");
+    private static final UUID RECEIVER_NODE_CLIENT_ID = UUID.fromString("f691940a-e5ce-483c-80d7-17b9e4f682fe");
     private static final UUID MESSAGE_ID = UUID.fromString("f691940a-e5ce-483c-80d7-17b9e4f682fe");
     private static final MessageCryptoService HUB_MESSAGE_CRYPTO_SERVICE = new HubMessageCryptoService(new SecureRandom());
     private static final EmitMessage TEST_MESSAGE = new EmitMessage(
-            new EmitMessageRecipient(RECEIVER_NODE_ROBOT_ID.toString()),
+            new EmitMessageRecipient(RECEIVER_NODE_CLIENT_ID.toString()),
             "FOO".getBytes(),
             new EmitMessageContext(
                     MESSAGE_ID,
@@ -87,7 +87,7 @@ public final class HubMessageEncryptionMiddlewareTest {
     public void failsIfReceiversPublicKeyCannotGetFetched() {
         Mockito.doReturn(Mono.error(new HubNodePublicKeyNotObtainable("error")))
                 .when(hubClient)
-                .fetchPublicKey(RECEIVER_NODE_ROBOT_ID.toString());
+                .fetchPublicKey(RECEIVER_NODE_CLIENT_ID.toString());
 
         StepVerifier.create(middleware.apply(TEST_MESSAGE))
                 .expectError(EmitMiddlewareException.class)
@@ -100,7 +100,7 @@ public final class HubMessageEncryptionMiddlewareTest {
 
         Mockito.doReturn(Mono.just((ECPublicKey) receiverKeyPair.getPublic()))
                 .when(hubClient)
-                .fetchPublicKey(RECEIVER_NODE_ROBOT_ID.toString());
+                .fetchPublicKey(RECEIVER_NODE_CLIENT_ID.toString());
 
         StepVerifier.create(middleware.apply(TEST_MESSAGE))
                 .assertNext(encryptedMessage -> {

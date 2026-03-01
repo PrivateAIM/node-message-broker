@@ -63,8 +63,8 @@ class MessageSpringConfig {
     @Value("${app.security.nodePrivateECDHKeyFile}")
     private String nodePrivateECDHKeyFile;
 
-    @Value("${app.hub.auth.robotId}")
-    private String selfRobotId;
+    @Value("${app.hub.auth.clientId}")
+    private String selfClientId;
 
     @Value("${app.proxy.host}")
     private String proxyHost;
@@ -366,7 +366,7 @@ class MessageSpringConfig {
     public MessageService messageService(
             @Qualifier("HUB_MESSENGER_SOCKET") MessageEmitter<EmitMessage> socket,
             HubClient hubClient) {
-        return new MessageService(socket, hubClient, selfRobotId);
+        return new MessageService(socket, hubClient, selfClientId);
     }
 
     @Qualifier("HUB_MESSAGE_RECEIVE_FORWARD_WEB_CLIENT")
