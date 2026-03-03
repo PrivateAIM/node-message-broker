@@ -77,6 +77,8 @@ services:
       DB_PASSWORD: 'start123'
       DB_DATABASE: 'auth'
       VAULT: start123@http://vault:8090/v1/
+      CLIENT_SYSTEM_SECRET: 'start123'
+      CLIENT_SYSTEM_ENABLED: true
       REDIS: redis://redis
       PUBLIC_URL: ${AUTHUP_PUBLIC_URL:-http://localhost:3001/}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-localhost}
@@ -88,7 +90,7 @@ services:
         ipv4_address: 172.99.20.11
 
   core:
-    image: ghcr.io/privateaim/hub:0.8.7@sha256:70f0c7329755ed46bca71c213104b3011b3f3f2c77dc13747616b2ca0ca2a7cb
+    image: ghcr.io/privateaim/hub:0.8.31
     restart: always
     depends_on:
       authup:
@@ -110,6 +112,9 @@ services:
       PUBLIC_URL: ${CORE_PUBLIC_URL:-http://localhost:3000/}
       HARBOR_URL: ${HARBOR_URL:-}
       AUTHUP_URL: http://authup:3000/
+      CLIENT_ID: 'system'
+      CLIENT_SECRET: 'start123'
+      REALM: 'master'
       DB_TYPE: 'mysql'
       DB_HOST: 'mysql'
       DB_USERNAME: 'root'
@@ -124,7 +129,7 @@ services:
         ipv4_address: 172.99.20.10
 
   messenger:
-    image: ghcr.io/privateaim/hub:0.8.7@sha256:70f0c7329755ed46bca71c213104b3011b3f3f2c77dc13747616b2ca0ca2a7cb
+    image: ghcr.io/privateaim/hub:0.8.31
     restart: always
     command: messenger start
     ports:
