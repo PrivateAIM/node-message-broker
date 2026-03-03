@@ -81,7 +81,7 @@ services:
       PUBLIC_URL: ${AUTHUP_PUBLIC_URL:-http://localhost:3001/}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-localhost}
       AUTHORIZE_REDIRECT_URL: ${PUBLIC_URL:-http://localhost:3001/}
-      CLIENT_ADMIN_ENABLED: true
+      ROBOT_ADMIN_ENABLED: true
     networks:
       hub:
       hub-node-intercomm:
