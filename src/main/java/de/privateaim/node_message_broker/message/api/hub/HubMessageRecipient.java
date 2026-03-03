@@ -8,8 +8,8 @@ import org.json.JSONPropertyName;
 /**
  * Representation of a message's recipient.
  *
- * @param recipientType type of the recipient (user, robot)
- * @param nodeRobotId   unique identifier of the receiving node's account
+ * @param recipientType type of the recipient (user, client)
+ * @param nodeClientId   unique identifier of the receiving node's account
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record HubMessageRecipient(
@@ -28,6 +28,6 @@ public record HubMessageRecipient(
         @JsonProperty("id")
         @NonNull
         @JSONPropertyName("id")
-        String nodeRobotId
+        String nodeClientId
 ) {
 }

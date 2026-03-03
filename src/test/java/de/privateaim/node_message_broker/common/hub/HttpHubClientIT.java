@@ -39,7 +39,7 @@ public class HttpHubClientIT {
     private static final int RETRY_DELAY_MILLIS = 10; // keeping it short for testing purposes!
 
     private static final String ANALYSIS_ID = "test-analysis-id";
-    private static final String ROBOT_ID = "robot-123";
+    private static final String CLIENT_ID = "client-123";
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -63,7 +63,7 @@ public class HttpHubClientIT {
     public class AnalysisNodesTests {
         @Test
         void obtainingAnalysisNodesSucceedsOnFirstTry() throws JsonProcessingException {
-            var node = new Node("test-node-id", "default", "not-relevant-here", ROBOT_ID);
+            var node = new Node("test-node-id", "default", "not-relevant-here", CLIENT_ID);
             var analysisNodes = List.of(new AnalysisNode("id-1", "test-node-id", node));
             var mockedHubResponse = new HubResponseContainer<>(analysisNodes);
 
@@ -78,7 +78,7 @@ public class HttpHubClientIT {
 
         @Test
         void obtainingAnalysisNodesSucceedsWithinRetryRange() throws JsonProcessingException, InterruptedException {
-            var node = new Node("test-node-id", "default", "not-relevant-here", ROBOT_ID);
+            var node = new Node("test-node-id", "default", "not-relevant-here", CLIENT_ID);
             var analysisNodes = List.of(new AnalysisNode("id-1", "test-node-id", node));
             var mockedHubResponse = new HubResponseContainer<>(analysisNodes);
 
@@ -178,26 +178,26 @@ public class HttpHubClientIT {
         }
 
         @Test
-        void nodeAssociatedWithRobotIdIsNotFound() throws JsonProcessingException {
+        void nodeAssociatedWithClientIdIsNotFound() throws JsonProcessingException {
             var mockedHubResponse = new HubResponseContainer<>(List.of());
             mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK)
                     .setHeader("Content-Type", "application/json")
                     .setBody(JSON.writeValueAsString(mockedHubResponse)));
 
-            StepVerifier.create(httpHubClient.fetchPublicKey(ROBOT_ID))
+            StepVerifier.create(httpHubClient.fetchPublicKey(CLIENT_ID))
                     .expectError(NoMatchingNodeFoundException.class)
                     .verify();
         }
 
         @Test
-        void publicKeyDoesNotExistOnNodeWithRobotId() throws JsonProcessingException {
-            var node = new Node("test-node-id", "default", null, ROBOT_ID);
+        void publicKeyDoesNotExistOnNodeWithClientId() throws JsonProcessingException {
+            var node = new Node("test-node-id", "default", null, CLIENT_ID);
             var mockedHubResponse = new HubResponseContainer<>(List.of(node));
             mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK)
                     .setHeader("Content-Type", "application/json")
                     .setBody(JSON.writeValueAsString(mockedHubResponse)));
 
-            StepVerifier.create(httpHubClient.fetchPublicKey(ROBOT_ID))
+            StepVerifier.create(httpHubClient.fetchPublicKey(CLIENT_ID))
                     .expectError(NoPublicKeyException.class)
                     .verify();
         }
@@ -209,13 +209,13 @@ public class HttpHubClientIT {
             Security.addProvider(securityProvider);
             var rsaPublicKey = hexEncoded(convertToPem("RSA PUBLIC KEY", generateRSAPublicKey()));
 
-            var node = new Node("test-node-id", "default", rsaPublicKey, ROBOT_ID);
+            var node = new Node("test-node-id", "default", rsaPublicKey, CLIENT_ID);
             var mockedHubResponse = new HubResponseContainer<>(List.of(node));
             mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK)
                     .setHeader("Content-Type", "application/json")
                     .setBody(JSON.writeValueAsString(mockedHubResponse)));
 
-            StepVerifier.create(httpHubClient.fetchPublicKey(ROBOT_ID))
+            StepVerifier.create(httpHubClient.fetchPublicKey(CLIENT_ID))
                     .expectError(MalformedPublicKeyException.class)
                     .verify();
         }
@@ -227,13 +227,13 @@ public class HttpHubClientIT {
             var ecdhPublicKey = generateECDHPublicKey();
             var encodedEcdhPublicKey = hexEncoded(convertToPem("PUBLIC KEY", ecdhPublicKey));
 
-            var node = new Node("test-node-id", "default", encodedEcdhPublicKey, ROBOT_ID);
+            var node = new Node("test-node-id", "default", encodedEcdhPublicKey, CLIENT_ID);
             var mockedHubResponse = new HubResponseContainer<>(List.of(node));
             mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_OK)
                     .setHeader("Content-Type", "application/json")
                     .setBody(JSON.writeValueAsString(mockedHubResponse)));
 
-            StepVerifier.create(httpHubClient.fetchPublicKey(ROBOT_ID))
+            StepVerifier.create(httpHubClient.fetchPublicKey(CLIENT_ID))
                     .expectNext(ecdhPublicKey)
                     .verifyComplete();
         }
@@ -246,7 +246,7 @@ public class HttpHubClientIT {
             var ecdhPublicKey = generateECDHPublicKey();
             var encodedEcdhPublicKey = hexEncoded(convertToPem("PUBLIC KEY", ecdhPublicKey));
 
-            var node = new Node("test-node-id", "default", encodedEcdhPublicKey, ROBOT_ID);
+            var node = new Node("test-node-id", "default", encodedEcdhPublicKey, CLIENT_ID);
             var mockedHubResponse = new HubResponseContainer<>(List.of(node));
 
             mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_SERVICE_UNAVAILABLE));
@@ -254,7 +254,7 @@ public class HttpHubClientIT {
                     .setHeader("Content-Type", "application/json")
                     .setBody(JSON.writeValueAsString(mockedHubResponse)));
 
-            StepVerifier.create(httpHubClient.fetchPublicKey(ROBOT_ID))
+            StepVerifier.create(httpHubClient.fetchPublicKey(CLIENT_ID))
                     .expectNext(ecdhPublicKey)
                     .verifyComplete();
 
@@ -266,7 +266,7 @@ public class HttpHubClientIT {
 
                 assertNotNull(requestUrl);
                 assertNotNull(recordedRequest.getPath());
-                assertEquals(ROBOT_ID, requestUrl.queryParameter("filter[robot_id]"));
+                assertEquals(CLIENT_ID, requestUrl.queryParameter("filter[client_id]"));
                 assertEquals("/nodes", URI.create(recordedRequest.getPath()).getPath());
             }
         }
@@ -277,7 +277,7 @@ public class HttpHubClientIT {
                 mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.SC_SERVICE_UNAVAILABLE));
             }
 
-            StepVerifier.create(httpHubClient.fetchPublicKey(ROBOT_ID))
+            StepVerifier.create(httpHubClient.fetchPublicKey(CLIENT_ID))
                     .verifyError(HubNodePublicKeyNotObtainable.class);
 
             for (int i = 0; i < (MAX_RETRIES + 1); i++) {
@@ -286,7 +286,7 @@ public class HttpHubClientIT {
 
                 assertNotNull(requestUrl);
                 assertNotNull(recordedRequest.getPath());
-                assertEquals(ROBOT_ID, requestUrl.queryParameter("filter[robot_id]"));
+                assertEquals(CLIENT_ID, requestUrl.queryParameter("filter[client_id]"));
                 assertEquals("/nodes", URI.create(recordedRequest.getPath()).getPath());
             }
         }

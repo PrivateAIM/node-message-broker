@@ -2,7 +2,7 @@
     "name": "<NODE_NAME>",
     "hidden": true,
     "type": "default",
-    "robot_id": "<ROBOT_ID>",
+    "client_id": "<CLIENT_ID>",
     "realm_id": "<REALM_ID>",
     "public_key": "<PUBLIC_KEY>"
 }

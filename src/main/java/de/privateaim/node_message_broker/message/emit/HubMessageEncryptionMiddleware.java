@@ -62,7 +62,7 @@ public final class HubMessageEncryptionMiddleware implements Function<EmitMessag
         }
 
         return Mono.zip(
-                        hubClient.fetchPublicKey(message.recipient().nodeRobotId()),
+                        hubClient.fetchPublicKey(message.recipient().nodeClientId()),
                         Mono.just(kdfKeyingInfoGenerator.apply(message)))
                 .onErrorMap(err -> new EmitMiddlewareException("failed to retrieve key material", err))
                 .flatMap(keyMaterial ->

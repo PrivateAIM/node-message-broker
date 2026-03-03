@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public final class MessageServiceIT {
 
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final String SELF_ROBOT_ID = "robot-123";
+    private static final String SELF_CLIENT_ID = "client-123";
 
     private MockWebServer mockWebServer;
 
@@ -59,7 +59,7 @@ public final class MessageServiceIT {
         var webClient = WebClient.create(mockWebServer.url("/").toString());
         var httpHubClient = new HttpHubClient(webClient, new HttpRetryConfig(0, 0));
 
-        messageService = new MessageService(spyMessageEmitter, httpHubClient, SELF_ROBOT_ID);
+        messageService = new MessageService(spyMessageEmitter, httpHubClient, SELF_CLIENT_ID);
         emitMessageCaptor = ArgumentCaptor.forClass(EmitMessage.class);
     }
 
@@ -88,8 +88,8 @@ public final class MessageServiceIT {
         @Test
         public void failsIfMessageRequestsRecipientsThatAreNotPartOfTheAnalysis() throws JsonProcessingException {
             var testAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "robot-1")),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "client-1")),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "client-2"))
             );
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
@@ -109,8 +109,8 @@ public final class MessageServiceIT {
         @Test
         public void stillSucceedsIfSingleMessageCannotGetEmitted() throws JsonProcessingException {
             var testAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "robot-1")),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "client-1")),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "client-2"))
             );
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
@@ -136,9 +136,9 @@ public final class MessageServiceIT {
         @Test
         public void remainingMessagesAreTriedToGetEmittedAfterPreviousOneFails() throws JsonProcessingException {
             var testAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "robot-1")),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2")),
-                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", "robot-3"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "client-1")),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "client-2")),
+                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", "client-3"))
             );
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
@@ -165,9 +165,9 @@ public final class MessageServiceIT {
         @Test
         public void unableToSendMessageToSelf() throws JsonProcessingException {
             var testAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "robot-1")),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2")),
-                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", SELF_ROBOT_ID))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "client-1")),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "client-2")),
+                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", SELF_CLIENT_ID))
             );
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
@@ -202,8 +202,8 @@ public final class MessageServiceIT {
         @Test
         public void stillSucceedsIfSingleMessageCannotGetEmitted() throws JsonProcessingException {
             var testAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "robot-1")),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "client-1")),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "client-2"))
             );
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
@@ -228,9 +228,9 @@ public final class MessageServiceIT {
         @Test
         public void remainingMessagesAreTriedToGetEmittedAfterPreviousOneFails() throws JsonProcessingException {
             var testAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "robot-1")),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2")),
-                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", "robot-3"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", "client-1")),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "client-2")),
+                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", "client-3"))
             );
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
 
@@ -256,9 +256,9 @@ public final class MessageServiceIT {
         @Test
         public void messageGetsEmittedToAllNodesBeingPartOfTheAnalysisExceptTheSender() throws JsonProcessingException {
             var testAnalysisNodes = List.of(
-                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", SELF_ROBOT_ID)),
-                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "robot-2")),
-                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", "robot-3"))
+                    new AnalysisNode("123", "node-1", new Node("node-1", "default", "pub123", SELF_CLIENT_ID)),
+                    new AnalysisNode("456", "node-2", new Node("node-2", "default", "pub456", "client-2")),
+                    new AnalysisNode("789", "node-3", new Node("node-3", "default", "pub789", "client-3"))
 
             );
             var mockedHubResponse = new HubResponseContainer<>(testAnalysisNodes);
@@ -278,11 +278,11 @@ public final class MessageServiceIT {
 
             var emittedMessages = emitMessageCaptor.getAllValues();
             assertEquals(testAnalysisNodes.size() - 1, emittedMessages.size());
-            assertTrue(emittedMessages.stream().map(msg -> msg.recipient().nodeRobotId())
+            assertTrue(emittedMessages.stream().map(msg -> msg.recipient().nodeClientId())
                     .toList()
                     .containsAll(testAnalysisNodes.stream()
-                            .filter(an -> !an.node.robotId.equals(SELF_ROBOT_ID))
-                            .map(analysisNode -> analysisNode.node.robotId)
+                            .filter(an -> !an.node.clientId.equals(SELF_CLIENT_ID))
+                            .map(analysisNode -> analysisNode.node.clientId)
                             .toList()));
         }
     }

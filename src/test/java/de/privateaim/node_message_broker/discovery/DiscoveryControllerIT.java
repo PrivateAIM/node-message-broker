@@ -164,7 +164,7 @@ public final class DiscoveryControllerIT {
 
         @Test
         void returns200WithTheDiscoveredSelfNode() throws IOException {
-            var self = new Participant("node-123", "robot-123", ParticipantType.AGGREGATOR);
+            var self = new Participant("node-123", "client-123", ParticipantType.AGGREGATOR);
             Mockito.doReturn(Mono.just(self))
                     .when(mockedDiscoveryService)
                     .discoverSelfInAnalysis(ANALYSIS_ID);

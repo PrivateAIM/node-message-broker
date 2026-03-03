@@ -32,16 +32,16 @@ public final class MessageService {
 
     private final MessageEmitter<EmitMessage> messageEmitter;
     private final HubClient hubClient;
-    private final String selfRobotId;
+    private final String selfClientId;
 
-    public MessageService(MessageEmitter<EmitMessage> messageEmitter, HubClient hubClient, String selfRobotId) {
+    public MessageService(MessageEmitter<EmitMessage> messageEmitter, HubClient hubClient, String selfClientId) {
         this.messageEmitter = requireNonNull(messageEmitter, "message emitter must not be null");
         this.hubClient = requireNonNull(hubClient, "hub client must not be null");
-        requireNonNull(selfRobotId, "self robot id must not be null");
-        if (selfRobotId.isBlank()) {
-            throw new IllegalArgumentException("self robot id must not be blank");
+        requireNonNull(selfClientId, "self client id must not be null");
+        if (selfClientId.isBlank()) {
+            throw new IllegalArgumentException("self client id must not be blank");
         }
-        this.selfRobotId = selfRobotId;
+        this.selfClientId = selfClientId;
     }
 
     /**
@@ -70,8 +70,8 @@ public final class MessageService {
                 .onErrorMap(err -> new AnalysisNodesLookupException("could not look up analysis nodes for analysis `%s`"
                         .formatted(analysisId), err))
                 .flatMap(participants -> {
-                    var participantsRobotIds = participants.stream().map(p -> p.robotId).toList();
-                    var messages = buildIndividualMessages(analysisId, messageReq.message, participantsRobotIds);
+                    var participantsClientIds = participants.stream().map(p -> p.clientId).toList();
+                    var messages = buildIndividualMessages(analysisId, messageReq.message, participantsClientIds);
                     return sendIndividualMessages(messages);
                 });
     }
@@ -107,7 +107,7 @@ public final class MessageService {
                     var participantsNodeIds = participants.stream().map(p -> p.nodeId).toList();
                     if (participantsNodeIds.containsAll(messageReq.recipients)) {
                         return sendIndividualMessages(buildIndividualMessages(analysisId, messageReq.message,
-                                mapNodeIdsToRobotIds(participants, messageReq.recipients)));
+                                mapNodeIdsToClientIds(participants, messageReq.recipients)));
                     } else {
                         return Mono.error(new InvalidMessageRecipientsException("list of recipients contains at least " +
                                 "one recipients that is not part of the analysis"));
@@ -119,7 +119,7 @@ public final class MessageService {
         return messages.flatMap(msg ->
                         messageEmitter.emitMessage(msg)
                                 .doOnError(err -> log.error("emitting message `{}` to node `{}` failed",
-                                        msg.context().messageId(), msg.recipient().nodeRobotId(), err))
+                                        msg.context().messageId(), msg.recipient().nodeClientId(), err))
                                 .onErrorResume(err -> Mono.empty()))
                 .then(Mono.empty());
     }
@@ -127,16 +127,16 @@ public final class MessageService {
     private Mono<Set<AnalysisParticipant>> getParticipantsOffAllOtherParticipatingAnalysisNodes(String analysisId) {
         return hubClient.fetchAnalysisNodes(analysisId)
                 .map(nodes -> nodes.stream()
-                        .map(n -> new AnalysisParticipant(n.node.id, n.node.robotId))
-                        .filter(participant -> !participant.robotId.equals(selfRobotId))
+                        .map(n -> new AnalysisParticipant(n.node.id, n.node.clientId))
+                        .filter(participant -> !participant.clientId.equals(selfClientId))
                         .collect(Collectors.toSet()));
     }
 
     private Flux<EmitMessage> buildIndividualMessages(String analysisId, JsonNode message,
-                                                      List<String> recipientRobotIds) {
+                                                      List<String> recipientClientIds) {
         var messageId = UUID.randomUUID();
-        return Flux.fromIterable(recipientRobotIds.stream().map(robotId -> EmitMessage.builder()
-                                .sendTo(new EmitMessageRecipient(robotId))
+        return Flux.fromIterable(recipientClientIds.stream().map(clientId -> EmitMessage.builder()
+                                .sendTo(new EmitMessageRecipient(clientId))
                                 .withPayload(message.toString().getBytes(StandardCharsets.UTF_8))
                                 .inContext(new EmitMessageContext(
                                         messageId,
@@ -146,19 +146,19 @@ public final class MessageService {
                 .onErrorMap(err -> new RuntimeException("could not prepare individual messages", err));
     }
 
-    private List<String> mapNodeIdsToRobotIds(Set<AnalysisParticipant> participants, List<String> nodeIds) {
-        var nodeIdRobotIdMapping = participants.stream()
-                .map(p -> Map.entry(p.nodeId(), p.robotId()))
+    private List<String> mapNodeIdsToClientIds(Set<AnalysisParticipant> participants, List<String> nodeIds) {
+        var nodeIdClientIdMapping = participants.stream()
+                .map(p -> Map.entry(p.nodeId(), p.clientId()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         return nodeIds.stream()
-                .map(nodeIdRobotIdMapping::get)
+                .map(nodeIdClientIdMapping::get)
                 .toList();
     }
 
     private record AnalysisParticipant(
             String nodeId,
-            String robotId // for internal communication usage
+            String clientId // for internal communication usage
     ) {
     }
 }

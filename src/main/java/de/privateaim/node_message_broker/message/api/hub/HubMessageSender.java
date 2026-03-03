@@ -8,8 +8,8 @@ import org.json.JSONPropertyName;
 /**
  * Representation of a message's sender.
  *
- * @param senderType  type of the sender (user, robot)
- * @param nodeRobotId unique identifier of the sending node's account
+ * @param senderType  type of the sender (user, client)
+ * @param nodeClientId unique identifier of the sending node's account
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record HubMessageSender(
@@ -27,6 +27,6 @@ public record HubMessageSender(
         @JsonProperty("id")
         @NonNull
         @JSONPropertyName("id")
-        String nodeRobotId
+        String nodeClientId
 ) {
 }

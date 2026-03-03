@@ -95,7 +95,7 @@ public final class HubMessageReceiver implements MessageReceiver {
                     }
                 })
                 .map(msg -> ReceiveMessage.builder()
-                        .sentFrom(new ReceiveMessageSender(msg.sender().nodeRobotId()))
+                        .sentFrom(new ReceiveMessageSender(msg.sender().nodeClientId()))
                         .withPayload(msg.payload().getBytes())
                         .inContext(new ReceiveMessageContext(
                                 msg.metadata().messageId(),

@@ -18,20 +18,20 @@ create_ec_key_pair() {
 }
 
 #
-# Creates a random robot secret.
+# Creates a random client secret.
 #
 # Args (positional)
 #   1 - node suffix (used for output files)
 #
-create_robot_secret() {
-  openssl rand -hex 12 > "$BASE_DIR"/robot-secret-"$1".txt
-  truncate -s -1 "$BASE_DIR"/robot-secret-"$1".txt
+create_client_secret() {
+  openssl rand -hex 12 > "$BASE_DIR"/client-secret-"$1".txt
+  truncate -s -1 "$BASE_DIR"/client-secret-"$1".txt
 }
 
 create_ec_key_pair node-a
 create_ec_key_pair node-b
 create_ec_key_pair node-c
 
-create_robot_secret node-a
-create_robot_secret node-b
-create_robot_secret node-c
+create_client_secret node-a
+create_client_secret node-b
+create_client_secret node-c
