@@ -64,7 +64,7 @@ public final class HubMessageEmitter implements MessageEmitter<EmitMessage> {
                 .onErrorMap(err ->
                         new EmitMessageException("failed to apply middlewares before emitting message", err))
                 .map(preprocessedMessage -> new OutgoingHubMessage(
-                        List.of(new HubMessageRecipient("robot", preprocessedMessage.recipient().nodeClientId())),
+                        List.of(new HubMessageRecipient("client", preprocessedMessage.recipient().nodeClientId())),
                         new String(preprocessedMessage.payload()),
                         new HubMessageMetadata(
                                 preprocessedMessage.context().messageId(),

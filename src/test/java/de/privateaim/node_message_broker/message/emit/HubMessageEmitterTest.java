@@ -46,7 +46,7 @@ public final class HubMessageEmitterTest {
     public void messageGetsEmittedAsIsWithoutAnyRegisteredMiddlewares() {
         var testMessage = generateBasicMessage("randome-test-message".getBytes());
         var expectedEmitMessage = new OutgoingHubMessage(
-                List.of(new HubMessageRecipient("robot", testMessage.recipient().nodeClientId())),
+                List.of(new HubMessageRecipient("client", testMessage.recipient().nodeClientId())),
                 new String(testMessage.payload()),
                 new HubMessageMetadata(
                         testMessage.context().messageId(),
@@ -97,7 +97,7 @@ public final class HubMessageEmitterTest {
         );
 
         var expectedEmitMessage = new OutgoingHubMessage(
-                List.of(new HubMessageRecipient("robot", testMessage.recipient().nodeClientId())),
+                List.of(new HubMessageRecipient("client", testMessage.recipient().nodeClientId())),
                 "FOO",
                 new HubMessageMetadata(
                         testMessage.context().messageId(),

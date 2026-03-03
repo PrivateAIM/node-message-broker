@@ -31,7 +31,7 @@ public final class HubMessageReceiverTest {
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     private static final IncomingHubMessage TEST_MESSAGE = new IncomingHubMessage(
-            new HubMessageSender("robot", "123"),
+            new HubMessageSender("client", "123"),
             "test-message",
             new HubMessageMetadata(
                     UUID.fromString("758be680-0300-4889-b13c-f7a9a62af6cf"),
