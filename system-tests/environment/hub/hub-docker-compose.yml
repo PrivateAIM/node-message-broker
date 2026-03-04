@@ -131,7 +131,7 @@ services:
   messenger:
     image: ghcr.io/privateaim/hub:0.8.31
     restart: always
-    command: messenger start
+    command: messenger cli start
     ports:
       - "3002:3000"
     depends_on:
