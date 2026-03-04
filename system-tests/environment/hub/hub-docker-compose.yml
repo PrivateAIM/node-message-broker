@@ -59,7 +59,7 @@ services:
       hub:
 
   authup:
-    image: authup/authup:next
+    image: authup/authup
     restart: always
     depends_on:
       mysql:
