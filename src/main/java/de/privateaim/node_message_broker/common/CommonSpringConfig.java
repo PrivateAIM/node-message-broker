@@ -64,7 +64,7 @@ public class CommonSpringConfig {
 
     @Qualifier("HUB_AUTH_CLIENT_SECRET")
     @Bean
-    public String hubAuthRobotSecret() throws IOException {
+    public String hubAuthClientSecret() throws IOException {
         return new String(ConfigurationUtil.readExternalFileContent(hubAuthClientSecretFile));
     }
 
@@ -195,13 +195,13 @@ public class CommonSpringConfig {
             @Qualifier("HUB_AUTH_WEB_CLIENT") WebClient webClient,
             @Qualifier("HUB_EXCHANGE_RETRY_CONFIG") HttpRetryConfig retryConfig,
             @Qualifier("HUB_AUTH_CLIENT_ID") String hubAuthClientId,
-            @Qualifier("HUB_AUTH_CLIENT_SECRET") String hubAuthRobotSecret,
+            @Qualifier("HUB_AUTH_CLIENT_SECRET") String hubAuthClientSecret,
             @Qualifier("HUB_JSON_MAPPER") ObjectMapper jsonMapper
     ) {
         return HubOIDCAuthenticator.builder()
                 .usingWebClient(webClient)
                 .withRetryConfig(retryConfig)
-                .withAuthCredentials(hubAuthClientId, hubAuthRobotSecret)
+                .withAuthCredentials(hubAuthClientId, hubAuthClientSecret)
                 .withJsonDecoder(jsonMapper)
                 .build();
     }
