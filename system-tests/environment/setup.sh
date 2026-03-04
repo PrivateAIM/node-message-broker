@@ -21,19 +21,31 @@ docker compose -f "$BASE_DIR"/hub/hub-docker-compose.yml up -d
 
 echo "### Waiting for Hub core component to enter 'healthy' state"
 stateCore=""
+retries=0
 until [ "$stateCore" = "healthy" ]
 do
+  if [ $retries -ge 60 ]; then
+    echo "ERROR: Hub core component did not become healthy in time"
+    exit 1
+  fi
   containerName=$(docker compose -f "$BASE_DIR"/hub/hub-docker-compose.yml ps -q core)
-  stateCore=$(docker inspect -f '{{.State.Health.Status}}' $containerName)
+  stateCore=$(docker inspect -f '{{.State.Health.Status}}' $containerName 2>/dev/null)
+  retries=$((retries + 1))
   sleep 5
 done
 
 echo "### Waiting for Hub auth component to enter 'healthy' state"
 stateAuth=""
+retries=0
 until [ "$stateAuth" = "healthy" ]
 do
+  if [ $retries -ge 60 ]; then
+    echo "ERROR: Hub auth component did not become healthy in time"
+    exit 1
+  fi
   containerName=$(docker compose -f "$BASE_DIR"/hub/hub-docker-compose.yml ps -q authup)
-  stateAuth=$(docker inspect -f '{{.State.Health.Status}}' $containerName)
+  stateAuth=$(docker inspect -f '{{.State.Health.Status}}' $containerName 2>/dev/null)
+  retries=$((retries + 1))
   sleep 5
 done
 
@@ -53,25 +65,38 @@ cat "$BASE_DIR"/node/node-docker-compose.tpl.yml |\
 
 echo "### Waiting for Node auth component (Keycloak) to enter 'healthy' state"
 stateNodeAuth=""
+retries=0
 until [ "$stateNodeAuth" = "healthy" ]
 do
+  if [ $retries -ge 60 ]; then
+    echo "ERROR: Node auth component (Keycloak) did not become healthy in time"
+    exit 1
+  fi
   containerName=$(docker compose -f "$BASE_DIR"/node/node-docker-compose.yml ps -q keycloak)
-  stateNodeAuth=$(docker inspect -f '{{.State.Health.Status}}' $containerName)
+  stateNodeAuth=$(docker inspect -f '{{.State.Health.Status}}' $containerName 2>/dev/null)
+  retries=$((retries + 1))
   sleep 5
 done
 
 echo "### Waiting for Nodes to enter 'healthy' state"
 stateNodes=""
+retries=0
 until [ "$stateNodes" = "healthy" ]
 do
-    containerNameNodeA=$(docker compose -f "$BASE_DIR"/node/node-docker-compose.yml ps -q node-a)
-    containerNameNodeB=$(docker compose -f "$BASE_DIR"/node/node-docker-compose.yml ps -q node-b)
-    containerNameNodeC=$(docker compose -f "$BASE_DIR"/node/node-docker-compose.yml ps -q node-c)
-    stateNodeA=$(docker inspect -f '{{.State.Health.Status}}' $containerNameNodeA)
-    stateNodeB=$(docker inspect -f '{{.State.Health.Status}}' $containerNameNodeB)
-    stateNodeC=$(docker inspect -f '{{.State.Health.Status}}' $containerNameNodeC)
+  if [ $retries -ge 60 ]; then
+    echo "ERROR: Nodes did not become healthy in time"
+    exit 1
+  fi
+  containerNameNodeA=$(docker compose -f "$BASE_DIR"/node/node-docker-compose.yml ps -q node-a)
+  containerNameNodeB=$(docker compose -f "$BASE_DIR"/node/node-docker-compose.yml ps -q node-b)
+  containerNameNodeC=$(docker compose -f "$BASE_DIR"/node/node-docker-compose.yml ps -q node-c)
+  stateNodeA=$(docker inspect -f '{{.State.Health.Status}}' $containerNameNodeA 2>/dev/null)
+  stateNodeB=$(docker inspect -f '{{.State.Health.Status}}' $containerNameNodeB 2>/dev/null)
+  stateNodeC=$(docker inspect -f '{{.State.Health.Status}}' $containerNameNodeC 2>/dev/null)
 
-    if [ "$stateNodeA" = "healthy" -a "$stateNodeB" = "healthy" -a "$stateNodeC" = "healthy" ]; then
-      stateNodes="healthy"
-    fi
+  if [ "$stateNodeA" = "healthy" -a "$stateNodeB" = "healthy" -a "$stateNodeC" = "healthy" ]; then
+    stateNodes="healthy"
+  fi
+  retries=$((retries + 1))
+  sleep 5
 done
