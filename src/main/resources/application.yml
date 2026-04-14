@@ -34,6 +34,9 @@ management:
 logging:
   level:
     org.springframework.web: ${LOG_LEVEL:info}
+  structured:
+    format:
+      console: ecs
 
 app:
   proxy:
