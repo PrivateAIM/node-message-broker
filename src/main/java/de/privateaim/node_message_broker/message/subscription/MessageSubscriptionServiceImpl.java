@@ -78,4 +78,18 @@ public final class MessageSubscriptionServiceImpl implements MessageSubscription
 
         return messageSubscriptionRepository.findAllByAnalysisId(analysisId);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public Mono<Void> deleteAllSubscriptionsForAnalysis(@NotNull String analysisId) {
+        if (analysisId == null) {
+            return Mono.error(new NullPointerException("analysis id must not be null"));
+        }
+        if (analysisId.isBlank()) {
+            return Mono.error(new IllegalArgumentException("analysis id must not be blank"));
+        }
+
+        return messageSubscriptionRepository.deleteAllByAnalysisId(analysisId).then();
+    }
 }

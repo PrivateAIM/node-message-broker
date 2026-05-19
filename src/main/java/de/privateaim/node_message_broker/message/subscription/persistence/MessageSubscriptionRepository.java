@@ -12,4 +12,6 @@ public interface MessageSubscriptionRepository extends ReactiveMongoRepository<M
 
     Flux<MessageSubscription> findAllByAnalysisId(String analysisId);
 
+    Flux<MessageSubscription> deleteAllByAnalysisId(String analysisId);
+
 }

@@ -88,6 +88,16 @@ public final class MessageSubscriptionController {
                 });
     }
 
+    @DeleteMapping
+    Mono<ResponseEntity<Void>> deleteAllSubscriptionsForAnalysis(@PathVariable String analysisId) {
+        if (analysisId.isBlank()) {
+            return Mono.just(ResponseEntity.badRequest().build());
+        }
+
+        return messageSubscriptionService.deleteAllSubscriptionsForAnalysis(analysisId)
+                .then(Mono.just(ResponseEntity.noContent().<Void>build()));
+    }
+
     @DeleteMapping("/{subscriptionId}")
     Mono<ResponseEntity<Void>> deleteSubscription(@PathVariable String analysisId, @PathVariable UUID subscriptionId) {
         if (analysisId.isBlank()) {

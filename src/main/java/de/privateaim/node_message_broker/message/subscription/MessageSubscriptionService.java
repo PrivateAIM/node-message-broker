@@ -44,4 +44,11 @@ public interface MessageSubscriptionService {
      * @return stream of subscriptions
      */
     Flux<MessageSubscription> listSubscriptions(@NotNull String analysisId);
+
+    /**
+     * Deletes all subscriptions associated with a given analysis.
+     *
+     * @param analysisId unique identifier of the analysis whose subscriptions should be deleted
+     */
+    Mono<Void> deleteAllSubscriptionsForAnalysis(@NotNull String analysisId);
 }

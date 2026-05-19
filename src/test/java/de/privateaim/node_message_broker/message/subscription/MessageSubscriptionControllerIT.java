@@ -212,6 +212,30 @@ public class MessageSubscriptionControllerIT extends AbstractBaseDatabaseIT {
     }
 
     @Nested
+    public class DeleteAllSubscriptionsForAnalysisTests {
+
+        @Test
+        void returns400IfAnalysisIdIsBlank() {
+            client.delete().uri("/analyses/ /messages/subscriptions")
+                    .exchange()
+                    .expectStatus().isBadRequest();
+        }
+
+        @Test
+        void returns204AfterSuccessfulDeletion() {
+            var analysisId = UUID.randomUUID().toString();
+            Mockito.doReturn(Mono.empty()).when(mockedSubscriptionService)
+                    .deleteAllSubscriptionsForAnalysis(analysisId);
+
+            client.delete().uri("/analyses/%s/messages/subscriptions".formatted(analysisId))
+                    .exchange()
+                    .expectStatus().isNoContent();
+
+            verify(mockedSubscriptionService, times(1)).deleteAllSubscriptionsForAnalysis(analysisId);
+        }
+    }
+
+    @Nested
     public class DeleteSubscriptionTests {
 
         @Test

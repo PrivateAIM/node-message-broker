@@ -154,4 +154,35 @@ public class MessageSubscriptionServiceImplIT extends AbstractBaseDatabaseIT {
         assertEquals(addCalls, queriedSubs.size());
         assertEquals(addedSubs, queriedSubs);
     }
+
+    @Test
+    void deleteAllSubscriptionsForAnalysis_DeletesOnlySubscriptionsForThatAnalysis() throws MalformedURLException {
+        var otherAnalysisId = "other-analysis";
+
+        for (int i = 0; i < 2; i++) {
+            StepVerifier.create(messageSubscriptionService.addSubscription(ANALYSIS_ID, WEBHOOK_URI.toURL()))
+                    .expectNextCount(1)
+                    .verifyComplete();
+        }
+        StepVerifier.create(messageSubscriptionService.addSubscription(otherAnalysisId, WEBHOOK_URI.toURL()))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        StepVerifier.create(messageSubscriptionService.deleteAllSubscriptionsForAnalysis(ANALYSIS_ID))
+                .verifyComplete();
+
+        StepVerifier.create(messageSubscriptionService.listSubscriptions(ANALYSIS_ID))
+                .expectNextCount(0)
+                .verifyComplete();
+
+        StepVerifier.create(messageSubscriptionService.listSubscriptions(otherAnalysisId))
+                .expectNextCount(1)
+                .verifyComplete();
+    }
+
+    @Test
+    void deleteAllSubscriptionsForAnalysis_CompletesWithoutErrorIfNoSubscriptionsExist() {
+        StepVerifier.create(messageSubscriptionService.deleteAllSubscriptionsForAnalysis("does-not-exist"))
+                .verifyComplete();
+    }
 }
