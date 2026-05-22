@@ -53,6 +53,7 @@ services:
       - vault:/vault
     environment:
       SKIP_SETCAP: true
+      VAULT_DISABLE_MLOCK: "true"
       VAULT_DEV_ROOT_TOKEN_ID: start123
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8090
     networks:
