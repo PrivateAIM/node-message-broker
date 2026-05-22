@@ -24,8 +24,7 @@ import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.net.URI;
 import java.util.List;
 
 @Slf4j
@@ -47,20 +46,11 @@ public class CommonSpringConfig {
     @Value("${app.hub.auth.clientSecretFile}")
     private String hubAuthClientSecretFile;
 
-    @Value("${app.proxy.host}")
-    private String proxyHost;
-
-    @Value("${app.proxy.port}")
-    private Integer proxyPort;
+    @Value("${app.proxy.url}")
+    private String proxyUrl;
 
     @Value("${app.proxy.whitelist}")
     private String proxyWhitelist;
-
-    @Value("${app.proxy.username}")
-    private String proxyUsername;
-
-    @Value("${app.proxy.passwordFile}")
-    private String proxyPasswordFile;
 
     @Qualifier("HUB_AUTH_CLIENT_SECRET")
     @Bean
@@ -95,42 +85,53 @@ public class CommonSpringConfig {
     }
 
     private HttpClient decorateClientWithProxySettings(HttpClient client) {
-        if (!proxyHost.isBlank() && proxyPort != null) {
-            log.info("configuring usage of proxy at `{}:{}` with the following hosts whitelisted (via regex): `{}`",
-                    proxyHost, proxyPort, proxyWhitelist);
-            return client.proxy(proxy -> {
-                        var proxyBuilder = proxy.type(ProxyProvider.Proxy.HTTP)
-                                .host(proxyHost)
-                                .port(proxyPort);
-
-                        if (!proxyWhitelist.isBlank()) {
-                            log.info("configuring whitelist for proxy at `{}:{}`", proxyHost, proxyPort);
-                            proxyBuilder.nonProxyHosts(proxyWhitelist);
-                        } else {
-                            log.info("skipping whitelist configuration for proxy at `{}:{}` since no whitelist " +
-                                    "is configured", proxyHost, proxyPort);
-                        }
-
-                        if (!proxyUsername.isBlank() && !proxyPasswordFile.isBlank()) {
-                            try {
-                                log.info("configuring authentication for proxy");
-                                var proxyPassword = Files.readString(Paths.get(proxyPasswordFile));
-                                proxyBuilder.username(proxyUsername)
-                                        .password((_username) -> proxyPassword);
-                            } catch (IOException e) {
-                                log.error("cannot read password file for proxy at `{}`", proxyPasswordFile, e);
-                                throw new RuntimeException(e);
-                            }
-                        } else {
-                            log.info("skipping authentication configuration for proxy at `{}:{}` since no " +
-                                    "credentials are configured", proxyHost, proxyPort);
-                        }
-                    }
-            );
-        } else {
+        if (proxyUrl.isBlank()) {
             log.info("skipping proxy configuration due to no specified settings");
             return client;
         }
+
+        URI uri = URI.create(proxyUrl);
+        String host = uri.getHost();
+        int port = uri.getPort();
+        String username = null;
+        String password = null;
+
+        if (uri.getUserInfo() != null) {
+            String[] userInfo = uri.getUserInfo().split(":", 2);
+            username = userInfo[0];
+            if (userInfo.length > 1) {
+                password = userInfo[1];
+            }
+        }
+
+        final String finalUsername = username;
+        final String finalPassword = password;
+
+        log.info("configuring usage of proxy at `{}:{}` with the following hosts whitelisted (via regex): `{}`",
+                host, port, proxyWhitelist);
+
+        return client.proxy(proxy -> {
+            var proxyBuilder = proxy.type(ProxyProvider.Proxy.HTTP)
+                    .host(host)
+                    .port(port);
+
+            if (!proxyWhitelist.isBlank()) {
+                log.info("configuring whitelist for proxy at `{}:{}`", host, port);
+                proxyBuilder.nonProxyHosts(proxyWhitelist);
+            } else {
+                log.info("skipping whitelist configuration for proxy at `{}:{}` since no whitelist " +
+                        "is configured", host, port);
+            }
+
+            if (finalUsername != null && !finalUsername.isBlank() && finalPassword != null) {
+                log.info("configuring authentication for proxy");
+                proxyBuilder.username(finalUsername)
+                        .password((_username) -> finalPassword);
+            } else {
+                log.info("skipping authentication configuration for proxy at `{}:{}` since no " +
+                        "credentials are configured", host, port);
+            }
+        });
     }
 
     @Qualifier("CORE_HTTP_CONNECTOR")

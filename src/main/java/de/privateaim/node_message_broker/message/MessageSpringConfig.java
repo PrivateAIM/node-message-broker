@@ -43,8 +43,6 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
 import java.util.Base64;
@@ -66,20 +64,11 @@ class MessageSpringConfig {
     @Value("${app.hub.auth.clientId}")
     private String selfClientId;
 
-    @Value("${app.proxy.host}")
-    private String proxyHost;
-
-    @Value("${app.proxy.port}")
-    private Integer proxyPort;
+    @Value("${app.proxy.url}")
+    private String proxyUrl;
 
     @Value("${app.proxy.whitelist}")
     private String proxyWhitelist;
-
-    @Value("${app.proxy.username}")
-    private String proxyUsername;
-
-    @Value("${app.proxy.passwordFile}")
-    private String proxyPasswordFile;
 
     private static final String SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER = "send";
 
@@ -110,32 +99,49 @@ class MessageSpringConfig {
     // The reason for that is that socket.io decided to go with a specific HTTP client instead of using an interface.
     // Hence, we're bound to using that client which also comes with a specific way of configuring it.
     private void decorateClientWithProxySettings(OkHttpClient.Builder clientBuilder) {
-        var proxyWhitelistPattern = Pattern.compile(proxyWhitelist);
-        if (proxyWhitelistPattern.matcher(proxyHost).matches()) {
-            log.warn("skipping proxy configuration for message socket due to the host `{}` matching the proxy " +
-                    "whitelist with pattern `{}`", proxyHost, proxyWhitelistPattern);
+        if (proxyUrl.isBlank()) {
+            log.info("skipping proxy configuration for message socket due to no specified settings");
             return;
         }
 
-        log.info("configuring usage of proxy for message socket at `{}:{}`", proxyHost, proxyPort);
-        var proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+        URI uri = URI.create(proxyUrl);
+        String host = uri.getHost();
+        int port = uri.getPort();
+        String username = null;
+        String password = null;
+
+        if (uri.getUserInfo() != null) {
+            String[] userInfo = uri.getUserInfo().split(":", 2);
+            username = userInfo[0];
+            if (userInfo.length > 1) {
+                password = userInfo[1];
+            }
+        }
+
+        if (!proxyWhitelist.isBlank()) {
+            var proxyWhitelistPattern = Pattern.compile(proxyWhitelist);
+            if (proxyWhitelistPattern.matcher(host).matches()) {
+                log.warn("skipping proxy configuration for message socket due to the host `{}` matching the proxy " +
+                        "whitelist with pattern `{}`", host, proxyWhitelistPattern);
+                return;
+            }
+        }
+
+        log.info("configuring usage of proxy for message socket at `{}:{}`", host, port);
+        var proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
         clientBuilder.proxy(proxy);
 
-        if (!proxyUsername.isBlank() && !proxyPasswordFile.isBlank()) {
-            try {
-                var proxyPassword = Files.readString(Paths.get(proxyPasswordFile));
+        if (username != null && !username.isBlank() && password != null) {
+            final String finalUsername = username;
+            final String finalPassword = password;
 
-                log.info("configuring authentication for proxy of message socket");
-                clientBuilder.proxyAuthenticator((route, response) -> {
-                    var proxyCredentials = Credentials.basic(proxyUsername, proxyPassword);
-                    return response.request().newBuilder()
-                            .header("Proxy-Authorization", proxyCredentials)
-                            .build();
-                });
-            } catch (IOException e) {
-                log.error("cannot read password file for proxy at `{}`", proxyPasswordFile, e);
-                throw new RuntimeException(e);
-            }
+            log.info("configuring authentication for proxy of message socket");
+            clientBuilder.proxyAuthenticator((route, response) -> {
+                var proxyCredentials = Credentials.basic(finalUsername, finalPassword);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", proxyCredentials)
+                        .build();
+            });
         }
     }
 

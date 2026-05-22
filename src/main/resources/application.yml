@@ -40,11 +40,8 @@ logging:
 
 app:
   proxy:
-    host: ${PROXY_HOST:}
-    port: ${PROXY_PORT:}
+    url: ${PROXY_URL:}
     whitelist: ${PROXY_WHITELIST:}
-    username: ${PROXY_USERNAME:}
-    passwordFile: ${PROXY_PASSWORD_FILE:}
   auth:
     jwksUrl: ${AUTH_JWKS_URL}
   hub:
