@@ -59,7 +59,7 @@ services:
       hub:
 
   authup:
-    image: authup/authup
+    image: authup/authup:1.0.0-beta.57
     restart: always
     depends_on:
       mysql:
@@ -84,13 +84,15 @@ services:
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-localhost}
       AUTHORIZE_REDIRECT_URL: ${PUBLIC_URL:-http://localhost:3001/}
       ROBOT_ADMIN_ENABLED: true
+    volumes:
+      - ./authup-provisioning.mjs:/usr/src/app/writable/provisioning/hub.mjs:ro
     networks:
       hub:
       hub-node-intercomm:
         ipv4_address: 172.99.20.11
 
   core:
-    image: ghcr.io/privateaim/hub:0.8.31
+    image: ghcr.io/privateaim/hub:0.13.0
     restart: always
     depends_on:
       authup:
@@ -110,7 +112,6 @@ services:
       VAULT_CONNECTION_STRING: start123@http://vault:8090/v1/
       RABBITMQ_CONNECTION_STRING: ${MQ_CONNECTION_URL:-amqp://root:start123@mq:5672}
       PUBLIC_URL: ${CORE_PUBLIC_URL:-http://localhost:3000/}
-      HARBOR_URL: ${HARBOR_URL:-}
       AUTHUP_URL: http://authup:3000/
       CLIENT_ID: 'system'
       CLIENT_SECRET: 'start123'
@@ -129,7 +130,7 @@ services:
         ipv4_address: 172.99.20.10
 
   messenger:
-    image: ghcr.io/privateaim/hub:0.8.31
+    image: ghcr.io/privateaim/hub:0.13.0
     restart: always
     command: messenger cli start
     ports:
