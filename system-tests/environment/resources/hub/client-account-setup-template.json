@@ -4,5 +4,6 @@
     "active": true,
     "realmId": "<REALM_ID>",
     "secretHashed": false,
-    "isConfidential": true
+    "authMethod": "secret",
+    "grantTypes": "client_credentials"
 }
