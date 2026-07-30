@@ -44,7 +44,7 @@ public final class HttpHubClient implements HubClient {
         return authenticatedWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/analysis-nodes")
-                        .queryParam("filter[analysis_id]", analysisId)
+                        .queryParam("filter[analysisId]", analysisId)
                         .queryParam("include", "node")
                         .build())
                 .retrieve()
@@ -74,7 +74,7 @@ public final class HttpHubClient implements HubClient {
         return authenticatedWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/nodes")
-                        .queryParam("filter[client_id]", clientId)
+                        .queryParam("filter[clientId]", clientId)
                         .build()
                 )
                 .retrieve()

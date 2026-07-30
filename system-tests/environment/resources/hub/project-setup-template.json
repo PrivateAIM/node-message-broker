@@ -1,5 +1,5 @@
 {
     "name": "<PROJECT_NAME>",
-    "realm_id": "<REALM_ID>",
-    "user_id": "<USER_ID>"
+    "realmId": "<REALM_ID>",
+    "userId": "<USER_ID>"
 }
