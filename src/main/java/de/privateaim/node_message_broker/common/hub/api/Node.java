@@ -21,9 +21,9 @@ public final class Node {
     @JsonProperty("type")
     public String type;
 
-    @JsonProperty("public_key")
+    @JsonProperty("publicKey")
     public String publicKey;
 
-    @JsonProperty("client_id")
+    @JsonProperty("clientId")
     public String clientId;
 }

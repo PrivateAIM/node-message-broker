@@ -61,7 +61,7 @@ MASTER_REALM_ID=$(curl -s -G --fail-with-body \
     -H "Accept: application/json" \
     --data-urlencode "filter[name]=${MASTER_REALM_NAME}" \
     -X GET "${HUB_AUTH_BASE_URL}/realms" |\
-    jq -r '.data[0].id')
+    jq -r '.data[0].id // empty')
 if [ -z "${MASTER_REALM_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -76,7 +76,7 @@ ADMIN_USER_ID=$(curl -s -G --fail-with-body \
     -H "Accept: application/json" \
     --data-urlencode "filter[name]=${ADMIN_USER_NAME}" \
     -X GET "${HUB_AUTH_BASE_URL}/users" |\
-    jq -r '.data[0].id')
+    jq -r '.data[0].id // empty')
 if [ -z "${ADMIN_USER_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -107,7 +107,7 @@ CLIENT_A_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${CLIENT_A_SETUP}" \
     -X POST "${HUB_AUTH_BASE_URL}/clients" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${CLIENT_A_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -121,7 +121,7 @@ CLIENT_B_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${CLIENT_B_SETUP}" \
     -X POST "${HUB_AUTH_BASE_URL}/clients" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${CLIENT_B_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -135,7 +135,7 @@ CLIENT_C_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${CLIENT_C_SETUP}" \
     -X POST "${HUB_AUTH_BASE_URL}/clients" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${CLIENT_C_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -159,7 +159,7 @@ PROJECT_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${PROJECT_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/projects" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${PROJECT_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -183,7 +183,7 @@ ANALYSIS_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${ANALYSIS_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/analyses" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${ANALYSIS_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -218,7 +218,7 @@ NODE_A_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${NODE_A_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${NODE_A_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -232,7 +232,7 @@ NODE_B_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${NODE_B_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${NODE_B_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -246,7 +246,7 @@ NODE_C_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${NODE_C_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${NODE_C_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -280,7 +280,7 @@ PROJECT_NODE_A_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${PROJECT_NODE_A_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/project-nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${PROJECT_NODE_A_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -294,7 +294,7 @@ PROJECT_NODE_B_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${PROJECT_NODE_B_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/project-nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${PROJECT_NODE_B_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -308,7 +308,7 @@ PROJECT_NODE_C_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${PROJECT_NODE_C_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/project-nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${PROJECT_NODE_C_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -342,7 +342,7 @@ ANALYSIS_NODE_A_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${ANALYSIS_NODE_A_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/analysis-nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${ANALYSIS_NODE_A_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -356,7 +356,7 @@ ANALYSIS_NODE_B_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${ANALYSIS_NODE_B_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/analysis-nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${ANALYSIS_NODE_B_ID}" ]; then
     echo "FAILED"
     exit 1
@@ -370,7 +370,7 @@ ANALYSIS_NODE_C_ID=$(curl -s --fail-with-body \
     -H "Content-Type: application/json" \
     -d "${ANALYSIS_NODE_C_SETUP}" \
     -X POST "${HUB_API_BASE_URL}/analysis-nodes" |\
-    jq -r '.id')
+    jq -r '.data.id // empty')
 if [ -z "${ANALYSIS_NODE_C_ID}" ]; then
     echo "FAILED"
     exit 1
