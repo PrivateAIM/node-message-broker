@@ -2,7 +2,7 @@
     "name": "<NODE_NAME>",
     "hidden": true,
     "type": "default",
-    "client_id": "<CLIENT_ID>",
-    "realm_id": "<REALM_ID>",
-    "public_key": "<PUBLIC_KEY>"
+    "clientId": "<CLIENT_ID>",
+    "realmId": "<REALM_ID>",
+    "publicKey": "<PUBLIC_KEY>"
 }

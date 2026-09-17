@@ -18,8 +18,8 @@ public final class AnalysisNode {
     @JsonProperty("id")
     public String id;
 
-    @JsonProperty("node_id")
-    public String node_id;
+    @JsonProperty("nodeId")
+    public String nodeId;
 
     @JsonProperty("node")
     public Node node;

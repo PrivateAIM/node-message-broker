@@ -99,7 +99,7 @@ public class HttpHubClientIT {
 
                 assertNotNull(requestUrl);
                 assertNotNull(recordedRequest.getPath());
-                assertEquals(ANALYSIS_ID, requestUrl.queryParameter("filter[analysis_id]"));
+                assertEquals(ANALYSIS_ID, requestUrl.queryParameter("filter[analysisId]"));
                 assertEquals("node", requestUrl.queryParameter("include"));
                 assertEquals("/analysis-nodes", URI.create(recordedRequest.getPath()).getPath());
             }
@@ -120,7 +120,7 @@ public class HttpHubClientIT {
 
                 assertNotNull(requestUrl);
                 assertNotNull(recordedRequest.getPath());
-                assertEquals(ANALYSIS_ID, requestUrl.queryParameter("filter[analysis_id]"));
+                assertEquals(ANALYSIS_ID, requestUrl.queryParameter("filter[analysisId]"));
                 assertEquals("node", requestUrl.queryParameter("include"));
                 assertEquals("/analysis-nodes", URI.create(recordedRequest.getPath()).getPath());
             }
@@ -266,7 +266,7 @@ public class HttpHubClientIT {
 
                 assertNotNull(requestUrl);
                 assertNotNull(recordedRequest.getPath());
-                assertEquals(CLIENT_ID, requestUrl.queryParameter("filter[client_id]"));
+                assertEquals(CLIENT_ID, requestUrl.queryParameter("filter[clientId]"));
                 assertEquals("/nodes", URI.create(recordedRequest.getPath()).getPath());
             }
         }
@@ -286,7 +286,7 @@ public class HttpHubClientIT {
 
                 assertNotNull(requestUrl);
                 assertNotNull(recordedRequest.getPath());
-                assertEquals(CLIENT_ID, requestUrl.queryParameter("filter[client_id]"));
+                assertEquals(CLIENT_ID, requestUrl.queryParameter("filter[clientId]"));
                 assertEquals("/nodes", URI.create(recordedRequest.getPath()).getPath());
             }
         }
