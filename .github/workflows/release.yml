@@ -29,7 +29,6 @@ jobs:
     steps:
       - name: Release Please
         id: release
-        if: github.event_name == 'push'
         uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -65,7 +64,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '25'
           cache: 'maven'
 
       - name: Package Project
