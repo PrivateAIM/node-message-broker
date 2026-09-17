@@ -5,6 +5,6 @@
     "bump-minor-pre-major": true,
     "skip-snapshot": true,
     "packages": {
-        ".": {"release-as": "1.0.0"}
+        ".": {}
     }
 }
