@@ -19,7 +19,6 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <socketio.version>2.1.1</socketio.version>
-        <!-- Ahead of the Spring Boot 3.5.16 BOM (1.18.46), which cannot process annotations on JDK 25. -->
         <lombok.version>1.18.48</lombok.version>
     </properties>
 
