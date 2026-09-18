@@ -10,7 +10,7 @@
 
     <groupId>de.privateaim</groupId>
     <artifactId>node-message-broker</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>node-message-broker</name>
     <description>Message broker for communicating with the central hub service and other node instances.</description>
 
