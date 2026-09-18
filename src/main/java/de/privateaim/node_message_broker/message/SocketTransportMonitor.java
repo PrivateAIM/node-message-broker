@@ -1,22 +1,37 @@
 package de.privateaim.node_message_broker.message;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import io.socket.client.Manager;
 import io.socket.emitter.Emitter;
+import io.socket.engineio.client.Socket;
 import io.socket.engineio.client.Transport;
 
 /** Tracks the engine.io transport in use and reports when the socket cannot upgrade off HTTP long-polling. */
 public final class SocketTransportMonitor {
 
     private static final String TRANSPORT_WEBSOCKET = "websocket";
+    private static final VarHandle TRANSPORT_ENGINE;
+
+    static {
+        try {
+            TRANSPORT_ENGINE = MethodHandles.privateLookupIn(Transport.class, MethodHandles.lookup())
+                    .findVarHandle(Transport.class, "socket", Socket.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     private final String messengerHost;
     private final String proxyDescription;
     private final Consumer<String> warningSink;
     private final AtomicBoolean warned = new AtomicBoolean();
+    private final AtomicReference<Socket> currentEngine = new AtomicReference<>();
 
     private volatile String transport;
 
@@ -33,14 +48,23 @@ public final class SocketTransportMonitor {
                 return;
             }
 
-            var opened = new AtomicBoolean();
-            created.on(Transport.EVENT_OPEN, ignored -> {
-                opened.set(true);
-                recordTransport(created.name);
-            });
+            var engine = (Socket) TRANSPORT_ENGINE.get(created);
+            var initial = currentEngine.getAndSet(engine) != engine;
+            var upgraded = new AtomicBoolean();
+
+            if (initial) {
+                created.on(Transport.EVENT_OPEN, ignored -> recordTransport(created.name));
+            } else if (engine != null) {
+                engine.on(Socket.EVENT_UPGRADE, args -> {
+                    if (args.length > 0 && args[0] == created) {
+                        upgraded.set(true);
+                        recordTransport(created.name);
+                    }
+                });
+            }
 
             created.on(Transport.EVENT_ERROR, ignored -> {
-                if (TRANSPORT_WEBSOCKET.equals(created.name) && !opened.get()) {
+                if (TRANSPORT_WEBSOCKET.equals(created.name) && !upgraded.get()) {
                     reportDegraded();
                 }
             });

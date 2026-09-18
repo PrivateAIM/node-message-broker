@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import io.socket.client.Manager;
 import io.socket.emitter.Emitter;
+import io.socket.engineio.client.Socket;
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.parser.Packet;
 
@@ -22,12 +23,14 @@ public final class SocketTransportMonitorTest {
     private List<String> warnings;
     private SocketTransportMonitor monitor;
     private Emitter manager;
+    private Socket engine;
 
     @BeforeEach
     public void setUp() {
         warnings = new ArrayList<>();
         monitor = new SocketTransportMonitor(MESSENGER_URL, PROXY_URL, warnings::add);
         manager = new Emitter();
+        engine = new Socket();
         monitor.bindTo(manager);
     }
 
@@ -56,6 +59,26 @@ public final class SocketTransportMonitorTest {
     }
 
     @Test
+    public void reportsUpgradedWebsocketAsHealthy() {
+        openTransport("polling");
+
+        upgradeTransport("websocket");
+
+        assertFalse(monitor.degraded());
+    }
+
+    @Test
+    public void warnsWhenTheWebsocketProbeOpensButFailsBeforeUpgrading() {
+        openTransport("polling");
+
+        var probe = openTransport("websocket");
+        probe.emit(Transport.EVENT_ERROR, new RuntimeException("probe error"));
+
+        assertTrue(monitor.degraded());
+        assertEquals(1, warnings.size());
+    }
+
+    @Test
     public void warnsWhenTheWebsocketUpgradeProbeFails() {
         openTransport("polling");
 
@@ -79,8 +102,9 @@ public final class SocketTransportMonitorTest {
         openTransport("polling");
         failTransport("websocket");
 
-        openTransport("websocket");
+        upgradeTransport("websocket");
 
+        reconnect();
         openTransport("polling");
         failTransport("websocket");
 
@@ -89,7 +113,8 @@ public final class SocketTransportMonitorTest {
 
     @Test
     public void doesNotWarnWhenAnEstablishedWebsocketLaterDrops() {
-        var websocket = openTransport("websocket");
+        openTransport("polling");
+        var websocket = upgradeTransport("websocket");
 
         websocket.emit(Transport.EVENT_ERROR, new RuntimeException("connection reset"));
 
@@ -116,8 +141,12 @@ public final class SocketTransportMonitorTest {
         assertFalse(warning.contains("someuser"), "warning must not leak proxy credentials, but was: " + warning);
     }
 
+    private void reconnect() {
+        engine = new Socket();
+    }
+
     private FakeTransport createTransport(String name) {
-        var transport = new FakeTransport(name);
+        var transport = new FakeTransport(name, engine);
         manager.emit(Manager.EVENT_TRANSPORT, transport);
         return transport;
     }
@@ -125,6 +154,12 @@ public final class SocketTransportMonitorTest {
     private FakeTransport openTransport(String name) {
         var transport = createTransport(name);
         transport.emit(Transport.EVENT_OPEN);
+        return transport;
+    }
+
+    private FakeTransport upgradeTransport(String name) {
+        var transport = openTransport(name);
+        engine.emit(Socket.EVENT_UPGRADE, transport);
         return transport;
     }
 
@@ -136,9 +171,10 @@ public final class SocketTransportMonitorTest {
 
     private static final class FakeTransport extends Transport {
 
-        private FakeTransport(String name) {
+        private FakeTransport(String name, Socket engine) {
             super(new Transport.Options());
             this.name = name;
+            this.socket = engine;
         }
 
         @Override
