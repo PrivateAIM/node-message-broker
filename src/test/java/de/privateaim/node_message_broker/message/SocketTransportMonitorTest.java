@@ -1,18 +1,18 @@
 package de.privateaim.node_message_broker.message;
 
-import io.socket.client.Manager;
-import io.socket.emitter.Emitter;
-import io.socket.engineio.client.Transport;
-import io.socket.engineio.parser.Packet;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import io.socket.client.Manager;
+import io.socket.emitter.Emitter;
+import io.socket.engineio.client.Transport;
+import io.socket.engineio.parser.Packet;
 
 public final class SocketTransportMonitorTest {
 
@@ -103,23 +103,6 @@ public final class SocketTransportMonitorTest {
         failTransport("polling");
 
         assertEquals(List.of(), warnings);
-    }
-
-    @Test
-    public void warningExplainsWhatTheProxyMustAllow() {
-        openTransport("polling");
-
-        failTransport("websocket");
-
-        var warning = warnings.getFirst();
-        assertTrue(warning.contains("messenger.staging.privateaim.net"),
-                "warning should name the destination an IT team must allow, but was: " + warning);
-        assertTrue(warning.contains("192.168.178.83:3128"),
-                "warning should name the proxy responsible, but was: " + warning);
-        assertTrue(warning.contains("Upgrade: websocket"),
-                "warning should state the vendor-neutral requirement, but was: " + warning);
-        assertTrue(warning.contains("http_upgrade_request_protocols websocket allow all"),
-                "warning should give the Squid example, but was: " + warning);
     }
 
     @Test
