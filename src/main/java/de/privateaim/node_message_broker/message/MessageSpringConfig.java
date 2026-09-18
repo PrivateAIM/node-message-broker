@@ -1,41 +1,5 @@
 package de.privateaim.node_message_broker.message;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import de.privateaim.node_message_broker.ConfigurationUtil;
-import de.privateaim.node_message_broker.common.OIDCAuthenticator;
-import de.privateaim.node_message_broker.common.hub.HubClient;
-import de.privateaim.node_message_broker.message.crypto.HubMessageCryptoService;
-import de.privateaim.node_message_broker.message.crypto.MessageCryptoService;
-import de.privateaim.node_message_broker.message.emit.EmitMessage;
-import de.privateaim.node_message_broker.message.emit.HubMessageEmitter;
-import de.privateaim.node_message_broker.message.emit.HubMessageEncryptionMiddleware;
-import de.privateaim.node_message_broker.message.emit.MessageEmitter;
-import de.privateaim.node_message_broker.message.receive.*;
-import de.privateaim.node_message_broker.message.subscription.MessageSubscriptionService;
-import de.privateaim.node_message_broker.message.subscription.MessageSubscriptionServiceImpl;
-import de.privateaim.node_message_broker.message.subscription.persistence.MessageSubscriptionRepository;
-import io.socket.client.IO;
-import io.socket.client.Manager;
-import io.socket.client.Socket;
-import lombok.extern.slf4j.Slf4j;
-import okhttp3.Credentials;
-import okhttp3.OkHttpClient;
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.openssl.PEMKeyPair;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -51,6 +15,51 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import de.privateaim.node_message_broker.ConfigurationUtil;
+import de.privateaim.node_message_broker.common.OIDCAuthenticator;
+import de.privateaim.node_message_broker.common.hub.HubClient;
+import de.privateaim.node_message_broker.message.crypto.HubMessageCryptoService;
+import de.privateaim.node_message_broker.message.crypto.MessageCryptoService;
+import de.privateaim.node_message_broker.message.emit.EmitMessage;
+import de.privateaim.node_message_broker.message.emit.HubMessageEmitter;
+import de.privateaim.node_message_broker.message.emit.HubMessageEncryptionMiddleware;
+import de.privateaim.node_message_broker.message.emit.MessageEmitter;
+import de.privateaim.node_message_broker.message.receive.HubMessageDecryptionMiddleware;
+import de.privateaim.node_message_broker.message.receive.HubMessageReceiver;
+import de.privateaim.node_message_broker.message.receive.HubMessageWebhookSubscriptionForwarder;
+import de.privateaim.node_message_broker.message.receive.HubMessageWebhookSubscriptionForwarderConfig;
+import de.privateaim.node_message_broker.message.receive.MessageConsumer;
+import de.privateaim.node_message_broker.message.receive.MessageReceiver;
+import de.privateaim.node_message_broker.message.receive.ReceiveMessage;
+import de.privateaim.node_message_broker.message.subscription.MessageSubscriptionService;
+import de.privateaim.node_message_broker.message.subscription.MessageSubscriptionServiceImpl;
+import de.privateaim.node_message_broker.message.subscription.persistence.MessageSubscriptionRepository;
+import io.socket.client.IO;
+import io.socket.client.Manager;
+import io.socket.client.Socket;
+import lombok.extern.slf4j.Slf4j;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Configuration
@@ -73,12 +82,23 @@ class MessageSpringConfig {
     private static final String SOCKET_RECEIVE_HUB_MESSAGE_IDENTIFIER = "send";
 
 
+    @Qualifier("HUB_MESSENGER_TRANSPORT_MONITOR")
+    @Bean
+    SocketTransportMonitor messengerTransportMonitor() {
+        return new SocketTransportMonitor(hubMessengerBaseUrl, proxyUrl, log::warn);
+    }
+
+
     @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET_SECURE_CLIENT")
     @Bean
     OkHttpClient decoratedSocketBaseClient(@Qualifier("COMMON_JAVA_SSL_CONTEXT") SSLContext sslCtx,
                                            @Qualifier("COMMON_TRUST_MANAGER_FACTORY") TrustManagerFactory tmf) {
 
         var clientBuilder = new OkHttpClient.Builder()
+                // Hub messenger pings every 25s
+                // OkHttp's aborts within 10s during long polling, which kills the connection on every cycle whenever the websocket upgrade is unavailable.
+                // Increasing the read timeout allows us to avoid this, but it also means that the client will take longer to detect a dead connection.
+                .readTimeout(1, TimeUnit.MINUTES)
                 .pingInterval(4, TimeUnit.SECONDS);
         decorateClientWithSSLContext(clientBuilder, sslCtx, tmf);
         decorateClientWithProxySettings(clientBuilder);
@@ -151,7 +171,8 @@ class MessageSpringConfig {
     public Socket underlyingMessengerSocket(
             @Qualifier("HUB_AUTHENTICATOR") OIDCAuthenticator hubAuthenticator,
             @Qualifier("HUB_MESSAGE_RECEIVER") MessageReceiver messageReceiver,
-            @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET_SECURE_CLIENT") OkHttpClient secureBaseClient) {
+            @Qualifier("HUB_MESSENGER_UNDERLYING_SOCKET_SECURE_CLIENT") OkHttpClient secureBaseClient,
+            @Qualifier("HUB_MESSENGER_TRANSPORT_MONITOR") SocketTransportMonitor transportMonitor) {
 
         URI messengerUri = URI.create(hubMessengerBaseUrl);
 
@@ -184,6 +205,8 @@ class MessageSpringConfig {
         // socket.io expects the base URL to be without the path
         final Socket socket = IO.socket(URI.create(socketHost), options);
         log.info("created socket for hub messenger at `{}`", socketHost);
+
+        transportMonitor.bindTo(socket.io());
 
         socket.on(Socket.EVENT_CONNECT_ERROR, objects -> {
             String errorMsg = objects.length > 0 ? objects[0].toString() : "unknown error";
