@@ -1,5 +1,5 @@
 module github.com/privateaim/reply-server
 
-go 1.23.3
+go 1.24
 
-require github.com/go-chi/chi/v5 v5.2.4
+require github.com/go-chi/chi/v5 v5.4.0
