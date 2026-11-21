@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/PrivateAIM/node-message-broker/compare/v1.0.1...v1.0.2) (2026-11-21)
+
+
+### Bug Fixes
+
+* update openjdk base image ([d6027f5](https://github.com/PrivateAIM/node-message-broker/commit/d6027f593db2b08f5cf59d94ddc604c198624222))
+
 ## [1.0.1](https://github.com/PrivateAIM/node-message-broker/compare/v1.0.0...v1.0.1) (2026-09-18)
 
 
